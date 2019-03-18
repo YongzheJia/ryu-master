@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="5c94a2bd-67f4-4e79-97ee-638fe4f5848f" name="Default" comment="">
+    <list default="true" id="5c94a2bd-67f4-4e79-97ee-638fe4f5848f" name="Default" comment="remove the ./git dir in some subdir.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -88,8 +88,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/my_plot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="206" column="36" selection-start-line="206" selection-start-column="36" selection-end-line="206" selection-end-column="36" />
+            <state relative-caret-position="237">
+              <caret line="205" column="38" lean-forward="true" selection-start-line="205" selection-start-column="38" selection-end-line="205" selection-end-column="38" />
               <folding>
                 <element signature="n#!!doc" />
                 <element signature="e#2288#3474#1" />
@@ -320,7 +320,7 @@
     <property name="SearchEverywhereHistoryKey" value="OFPActionOutput&#9;null&#9;null&#10;datapath&#9;null&#9;null" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../mininet" />
-    <property name="settings.editor.selected.configurable" value="settings.github" />
+    <property name="settings.editor.selected.configurable" value="vcs.CVS" />
     <property name="two.files.diff.last.used.file" value="$PROJECT_DIR$/ryu/app/exp_BFlows2/my_plot.py" />
   </component>
   <component name="RecentsManager">
@@ -1029,12 +1029,20 @@
       <workItem from="1545894221561" duration="141074000" />
       <workItem from="1551602813341" duration="47019000" />
       <workItem from="1551876994004" duration="42477000" />
-      <workItem from="1552898155346" duration="732000" />
+      <workItem from="1552898155346" duration="1751000" />
     </task>
+    <task id="LOCAL-00001" summary="remove the ./git dir in some subdir.">
+      <created>1552898983142</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1552898983142</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="253908000" />
+    <option name="totallyTimeSpent" value="254927000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -1046,9 +1054,9 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="390" y="24" width="1526" height="890" extended-state="1" />
+    <frame x="390" y="24" width="1526" height="890" extended-state="0" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49607843" visible="true" weight="0.20771313" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.49607843" visible="true" weight="0.20771313" />
       <window_info id="Structure" order="1" sideWeight="0.4965157" weight="0.2435724" />
       <window_info id="Favorites" order="2" sideWeight="0.5034843" side_tool="true" weight="0.2435724" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -1059,7 +1067,7 @@
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="Docker" order="6" show_stripe_button="false" />
       <window_info anchor="bottom" id="Terminal" order="7" weight="0.35006604" />
-      <window_info active="true" anchor="bottom" id="Event Log" order="8" sideWeight="0.5047361" side_tool="true" visible="true" weight="0.29002625" />
+      <window_info anchor="bottom" id="Event Log" order="8" sideWeight="0.5047361" side_tool="true" weight="0.29002625" />
       <window_info anchor="bottom" id="Version Control" order="9" sideWeight="0.4993234" weight="0.3264516" />
       <window_info anchor="bottom" id="Python Console" order="10" weight="0.3224543" />
       <window_info anchor="bottom" id="Database Changes" order="11" show_stripe_button="false" />
@@ -1100,6 +1108,10 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="remove the ./git dir in some subdir." />
+    <option name="LAST_COMMIT_MESSAGE" value="remove the ./git dir in some subdir." />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/ryu/base/app_manager.py">
@@ -1490,8 +1502,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/my_plot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="206" column="36" selection-start-line="206" selection-start-column="36" selection-end-line="206" selection-end-column="36" />
+        <state relative-caret-position="237">
+          <caret line="205" column="38" lean-forward="true" selection-start-line="205" selection-start-column="38" selection-end-line="205" selection-end-column="38" />
           <folding>
             <element signature="n#!!doc" />
             <element signature="e#2288#3474#1" />
