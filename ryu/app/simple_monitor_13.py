@@ -47,7 +47,8 @@ class SimpleMonitor13(simple_switch_13.SimpleSwitch13):
         while True:
             for dp in self.datapaths.values():
                 self._request_stats(dp)
-            hub.sleep(10)
+            # hub.sleep(10)
+            hub.sleep(3)
 
     def _request_stats(self, datapath):
         self.logger.debug('send stats request: %016x', datapath.id)
@@ -78,6 +79,7 @@ class SimpleMonitor13(simple_switch_13.SimpleSwitch13):
                              stat.match['in_port'], stat.match['eth_dst'],
                              stat.instructions[0].actions[0].port,
                              stat.packet_count, stat.byte_count)
+            print stat
 
     @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
     def _port_stats_reply_handler(self, ev):
@@ -95,3 +97,4 @@ class SimpleMonitor13(simple_switch_13.SimpleSwitch13):
                              ev.msg.datapath.id, stat.port_no,
                              stat.rx_packets, stat.rx_bytes, stat.rx_errors,
                              stat.tx_packets, stat.tx_bytes, stat.tx_errors)
+

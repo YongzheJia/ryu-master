@@ -102,7 +102,9 @@ class ShortestForwarding(app_manager.RyuApp):
 		ofproto = dp.ofproto
 		parser = dp.ofproto_parser
 		inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-		mod = parser.OFPFlowMod(datapath=dp, priority=priority,
+		tid_mnt = 1
+
+		mod = parser.OFPFlowMod(datapath=dp, table_id=tid_mnt, priority=priority,
 								idle_timeout=idle_timeout,
 								hard_timeout=hard_timeout,
 								match=match, instructions=inst)
@@ -295,6 +297,8 @@ class ShortestForwarding(app_manager.RyuApp):
 
 		self.add_flow(datapath, 30, match, actions,
 					  idle_timeout=5, hard_timeout=0)
+		# self.add_flow(datapath, 30, match, actions,
+		# 			  idle_timeout=0, hard_timeout=0)
 
 	def install_flow(self, datapaths, link_to_port, path, flow_info, buffer_id, data=None):
 		'''
@@ -370,7 +374,7 @@ class ShortestForwarding(app_manager.RyuApp):
 		"""
 		datapath = msg.datapath
 		in_port = msg.match['in_port']
-		result = self.get_sw(datapath.id, in_port, ip_src, ip_dst)   # result = (src_sw, dst_sw)
+		result = self.get_sw(datapath.id, in_port, ip_src, ip_dst)   # result = (src_sw, dst_sw) src_sw = (sw,port)
 		if result:
 			src_sw, dst_sw = result[0], result[1]
 			if dst_sw:

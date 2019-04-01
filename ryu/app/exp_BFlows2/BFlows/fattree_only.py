@@ -1,5 +1,9 @@
+# Copyright (C) 2019 Jia YongZhe at Nanjing University
+# of Science and Technology, Jiangsu, China.
+#
 # Copyright (C) 2016 Huang MaChi at Chongqing University
 # of Posts and Telecommunications, Chongqing, China.
+#
 # Copyright (C) 2016 Li Cheng at Beijing University of Posts
 # and Telecommunications. www.muzixing.com
 #
@@ -34,8 +38,8 @@ from multiprocessing import Process
 import sys
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parentdir)
-import iperf_peers
-
+# import iperf_peers
+from ryu.app.exp_BFlows2.BFlows import iperf_peers
 
 parser = argparse.ArgumentParser(description="Parameters importation")
 parser.add_argument('--k', dest='k', type=int, default=4, choices=[4, 8], help="Switch fanout number")
@@ -252,44 +256,50 @@ def monitor_devs_ng(fname="./txrate.txt", interval_sec=0.1):
 	cmd = "sleep 1; bwm-ng -t %s -o csv -u bits -T rate -C ',' > %s" %  (interval_sec * 1000, fname)
 	Popen(cmd, shell=True).wait()
 
-def traffic_generation(net, topo, flows_peers):
-	"""
-		Generate traffics and test the performance of the network.
-	"""
-	# 1. Start iperf. (Elephant flows)
-	# Start the servers.
-	serversList = set([peer[1] for peer in flows_peers])
-	for server in serversList:
-		# filename = server[1:]
-		server = net.get(server)
-		# server.cmd("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
-		server.cmd("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
+# def traffic_generation(net, topo, flows_peers):
+# 	"""
+# 		Generate traffics and test the performance of the network.
+# 	"""
+# 	# 1. Start iperf. (Elephant flows)
+# 	# Start the servers.
+# 	serversList = set([peer[1] for peer in flows_peers])
+# 	for server in serversList:
+# 		# filename = server[1:]
+# 		server = net.get(server)
+# 		# server.cmd("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
+# 		server.cmd("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
+#
+# 	time.sleep(3)
+#
+# 	# Start the clients.
+# 	for src, dest in flows_peers:
+# 		server = net.get(dest)
+# 		client = net.get(src)
+# 		# filename = src[1:]
+# 		# client.cmd("iperf -c %s -t %d > %s/%s &" % (server.IP(), args.duration, args.output_dir, 'client'+filename+'.txt'))
+# 		client.cmd("iperf -c %s -t %d > /dev/null &" % (server.IP(), 1990))   # Its statistics is useless, just throw away. 1990 just means a great number.
+# 		time.sleep(1)
+#
+# 	# Wait for the traffic to become stable.
+# 	time.sleep(3)
+#
+# 	# 2. Start bwm-ng to monitor throughput.
+# 	monitor = Process(target = monitor_devs_ng, args = ('%s/bwmng.txt' % args.output_dir, 1.0))
+# 	monitor.start()
+#
+# 	# 3. The experiment is going on.
+# 	time.sleep(args.duration + 5)
+#
+# 	# 4. Shut down.
+# 	monitor.terminate()
+# 	os.system('killall bwm-ng')
+# 	os.system('killall iperf')
 
-	time.sleep(3)
+FAT_TOPO = Fattree(args.k, args.k/2)
+FAT_NET = Mininet(topo=FAT_TOPO, link=TCLink, controller=RemoteController, autoSetMacs=True, build=False)
+# ryu_start = 0
 
-	# Start the clients.
-	for src, dest in flows_peers:
-		server = net.get(dest)
-		client = net.get(src)
-		# filename = src[1:]
-		# client.cmd("iperf -c %s -t %d > %s/%s &" % (server.IP(), args.duration, args.output_dir, 'client'+filename+'.txt'))
-		client.cmd("iperf -c %s -t %d > /dev/null &" % (server.IP(), 1990))   # Its statistics is useless, just throw away. 1990 just means a great number.
-		time.sleep(2)
-
-	# Wait for the traffic to become stable.
-	time.sleep(5)
-
-	# 2. Start bwm-ng to monitor throughput.
-	monitor = Process(target = monitor_devs_ng, args = ('%s/bwmng.txt' % args.output_dir, 1.0))
-	monitor.start()
-
-	# 3. The experiment is going on.
-	time.sleep(args.duration + 5)
-
-	# 4. Shut down.
-	monitor.terminate()
-	os.system('killall bwm-ng')
-	os.system('killall iperf')
+serversList = set([peer[1] for peer in iperf_peers.iperf_peers])
 
 def run_experiment(pod, density, ip="127.0.0.1", port=6653, bw_c2a=10, bw_a2e=10, bw_e2h=10):
 	"""
@@ -298,43 +308,52 @@ def run_experiment(pod, density, ip="127.0.0.1", port=6653, bw_c2a=10, bw_a2e=10
 		thirdly, generate traffics and test the performance of the network.
 	"""
 	# Create Topo.
-	topo = Fattree(pod, density)
-	topo.createNodes()
-	topo.createLinks(bw_c2a=bw_c2a, bw_a2e=bw_a2e, bw_e2h=bw_e2h)
+	# topo = Fattree(pod, density)
+	# topo = FAT_TOPO
+	FAT_TOPO.createNodes()
+	FAT_TOPO.createLinks(bw_c2a=bw_c2a, bw_a2e=bw_a2e, bw_e2h=bw_e2h)
 
 	# 1. Start Mininet.
 	CONTROLLER_IP = ip
 	CONTROLLER_PORT = port
-	net = Mininet(topo=topo, link=TCLink, controller=None, autoSetMacs=True)
-	net.addController(
+	# net = FAT_NET
+	FAT_NET.addController(
 		'controller', controller=RemoteController,
 		ip=CONTROLLER_IP, port=CONTROLLER_PORT)
-	net.start()
+	FAT_NET.start()
 
 	# Set the OpenFlow version for switches as 1.3.0.
-	topo.set_ovs_protocol_13()
+	FAT_TOPO.set_ovs_protocol_13()
 	# Set the IP addresses for hosts.
-	set_host_ip(net, topo)
+	set_host_ip(FAT_NET, FAT_TOPO)
 	# Install proactive flow entries.
-	install_proactive(net, topo)
+	install_proactive(FAT_NET, FAT_TOPO)
 
-	# 2. Start the controller.
-	# k_paths = args.k ** 2 / 8   # We should utilize more paths.
-	k_paths = args.k ** 2 * 3 / 4
-	fanout = args.k
-	Controller_Ryu = Popen("ryu-manager --observe-links ./PureSDN/PureSDN.py --k_paths=%d --weight=bw --fanout=%d" % (k_paths, fanout), shell=True, preexec_fn=os.setsid)
+	# # 2. Start the controller.
+	# # k_paths = args.k ** 2 / 8   # We should utilize more paths.
+	# k_paths = args.k ** 2 * 3 / 4
+	# fanout = args.k
+	# Controller_Ryu = Popen("ryu-manager --observe-links /home/jyz/ryu-master/ryu/app/exp_BFlows2/BFlows/BFlows.py --k_paths=%d --weight=fnum --fanout=%d" % (k_paths, fanout), shell=True, preexec_fn=os.setsid)
+    #
+	# # Wait until the controller has discovered network topology.
+	# # my code---------------------------------------------------------------------------------
+	# # time.sleep(60)
+	# time.sleep(20)
+	# # my code---------------------------------------------------------------------------------
+    #
+	# # 3. Generate traffics and test the performance of the network.
+	# traffic_generation(net, topo, iperf_peers.iperf_peers)
+    #
+	# # Stop the controller.
+	# os.killpg(Controller_Ryu.pid, signal.SIGKILL)
+    #
+	# # Stop Mininet.
 
-	# Wait until the controller has discovered network topology.
-	time.sleep(30)
+	# while not ryu_start:
+	# 	time.sleep(1)
 
-	# 3. Generate traffics and test the performance of the network.
-	traffic_generation(net, topo, iperf_peers.iperf_peers)
-
-	# Stop the controller.
-	os.killpg(Controller_Ryu.pid, signal.SIGKILL)
-
-	# Stop Mininet.
-	net.stop()
+	CLI(FAT_NET)
+	FAT_NET.stop()
 
 if __name__ == '__main__':
 	setLogLevel('info')

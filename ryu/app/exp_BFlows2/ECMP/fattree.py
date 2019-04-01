@@ -312,7 +312,7 @@ def traffic_generation(net, topo, flows_peers):
 		time.sleep(2)
 
 	# Wait for the traffic to become stable.
-	time.sleep(10)
+	time.sleep(5)
 
 	# 2. Start bwm-ng to monitor throughput.
 	monitor = Process(target = monitor_devs_ng, args = ('%s/bwmng.txt' % args.output_dir, 1.0))

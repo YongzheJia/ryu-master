@@ -28,4 +28,4 @@ TOSHOW = False	   # For showing information in terminal
 
 MAX_CAPACITY = 10000   # Max capacity of link, Kbit/s
 
-get_topology_delay = 30
+get_topology_delay = 5

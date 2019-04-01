@@ -322,7 +322,7 @@ def traffic_generation(net, topo, flows_peers):
 		time.sleep(2)
 
 	# Wait for the traffic to become stable.
-	time.sleep(10)
+	time.sleep(5)
 
 	# 2. Start bwm-ng to monitor throughput.
 	monitor = Process(target = monitor_devs_ng, args = ('%s/bwmng.txt' % args.output_dir, 1.0))
@@ -370,7 +370,7 @@ def run_experiment(pod, density, ip="127.0.0.1", port=6653, bw_c2a=10, bw_a2e=10
 	Controller_Ryu = Popen("ryu-manager --observe-links ./Hedera/Hedera.py --k_paths=%d --weight=hop --fanout=%d" % (k_paths, fanout), shell=True, preexec_fn=os.setsid)
 
 	# Wait until the controller has discovered network topology.
-	time.sleep(60)
+	time.sleep(30)
 
 	# 3. Generate traffics and test the performance of the network.
 	traffic_generation(net, topo, iperf_peers.iperf_peers)

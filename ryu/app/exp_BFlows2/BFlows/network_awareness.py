@@ -93,7 +93,11 @@ class NetworkAwareness(app_manager.RyuApp):
 		parser = dp.ofproto_parser
 		inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
 											 actions)]
-		mod = parser.OFPFlowMod(datapath=dp, priority=priority,
+
+		# Install flow entry to table_1 by default.
+		tid_mnt = 1
+
+		mod = parser.OFPFlowMod(datapath=dp, table_id=tid_mnt, priority=priority,
 								idle_timeout=idle_timeout,
 								hard_timeout=hard_timeout,
 								match=match, instructions=inst)
@@ -109,8 +113,14 @@ class NetworkAwareness(app_manager.RyuApp):
 		parser = datapath.ofproto_parser
 		self.logger.info("switch:%s connected", datapath.id)
 
-		# Install table-miss flow entry.
+		# Install goto-table-miss flow entry in table_0.
 		match = parser.OFPMatch()
+		inst = [parser.OFPInstructionGotoTable(1)]
+		mod = parser.OFPFlowMod(datapath=datapath, priority=0,
+								match=match, instructions=inst)
+		datapath.send_msg(mod)
+
+		# Install real table-miss flow entry to table_1.
 		actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
 										  ofproto.OFPCML_NO_BUFFER)]
 		self.add_flow(datapath, 0, match, actions)
@@ -256,11 +266,16 @@ class NetworkAwareness(app_manager.RyuApp):
 		# Find k shortest paths in graph.
 		for src in _graph.nodes():
 			paths.setdefault(src, {src: [[src] for i in xrange(k)]})
+			# print "------------------------------------------------------------------------------"
 			for dst in _graph.nodes():
 				if src == dst:
 					continue
 				paths[src].setdefault(dst, [])
 				paths[src][dst] = self.k_shortest_paths(_graph, src, dst, weight=weight, k=k)
+				# print paths[src][dst]
+			# print "------------------------------------------------------------------------------"
+			# print type(paths)
+
 		return paths
 
 	def register_access_info(self, dpid, in_port, ip, mac):
@@ -311,5 +326,5 @@ class NetworkAwareness(app_manager.RyuApp):
 			print
 			self.pre_access_table = self.access_table.copy()
 
-		nx.draw(self.graph)
-		plt.savefig("/home/%d.png" % int(time.time()))
+		# nx.draw(self.graph)
+		# plt.savefig("/home/huangmc/exe/matplotlib/%d.png" % int(time.time()))

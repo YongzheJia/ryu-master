@@ -63,6 +63,20 @@ print 2 ** a
 
 # print time.time()
 
-x = np.arange(0, 10 + 1)
-print type(x)
-print x
+# x = np.arange(0, 10 + 1)
+# print type(x)
+# print x
+
+print "--------------------------"
+path = ["111", "222", "333", "444", "555"]
+print "path[2:3]:", path[2:3]
+for i in xrange(0, len(path)-1):
+    print path[i]
+print "--------------------------"
+
+link_to_port = {(1, 2): ("1-1", "2-1"), (1, 3): ("1-1", "3-1"), (2, 3): ("2-2", "3-2")}
+# {(src_dpid,dst_dpid):(src_port,dst_port),}
+print link_to_port[(1, 3)][1]
+print "--------------------------"
+
+print 7/3
