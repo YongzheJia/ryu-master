@@ -85,6 +85,10 @@ class ShortestForwarding(app_manager.RyuApp):
 		arp_pkt = pkt.get_protocol(arp.arp)
 		ip_pkt = pkt.get_protocol(ipv4.ipv4)
 
+		# Parser tcp/udp information for differentiate elephant flow and mice flow.
+		tcp_pkt = pkt.get_protocol(tcp.tcp)
+		udp_pkt = pkt.get_protocol(udp.udp)
+
 		if isinstance(arp_pkt, arp.arp):
 			self.logger.debug("ARP processing")
 			self.arp_forwarding(msg, arp_pkt.src_ip, arp_pkt.dst_ip)
@@ -93,7 +97,21 @@ class ShortestForwarding(app_manager.RyuApp):
 			self.logger.debug("IPV4 processing")
 			if len(pkt.get_protocols(ethernet.ethernet)):
 				eth_type = pkt.get_protocols(ethernet.ethernet)[0].ethertype
-				self.shortest_forwarding(msg, eth_type, ip_pkt.src, ip_pkt.dst)
+
+				# Forwarding elephant/mice flow.
+				if isinstance(tcp_pkt, tcp.tcp):
+					self.logger.debug("TCP processing")
+					self.shortest_forwarding(msg, eth_type, ip_pkt.src, ip_pkt.dst,
+											 L4_Proto=6, L4_src_port=tcp_pkt.src_port, L4_dst_port=tcp_pkt.dst_port)
+
+				elif isinstance(udp_pkt, udp.udp):
+					self.logger.debug("UDP processing")
+					self.shortest_forwarding(msg, eth_type, ip_pkt.src, ip_pkt.dst,
+											 L4_Proto=17, L4_src_port=udp_pkt.src_port, L4_dst_port=udp_pkt.dst_port)
+
+				# Forwarding flow by default.
+				else:
+					self.shortest_forwarding(msg, eth_type, ip_pkt.src, ip_pkt.dst)
 
 	def add_flow(self, dp, priority, match, actions, idle_timeout=0, hard_timeout=0):
 		"""
@@ -205,7 +223,7 @@ class ShortestForwarding(app_manager.RyuApp):
 			# Flood is not good.
 			self.flood(msg)
 
-	def get_path(self, src, dst, weight):
+	def get_path(self, src, dst, L4_Proto, L4_src_port, L4_dst_port, weight='weight'):
 		"""
 			Get shortest path from network_awareness module.
 			generator (nx.shortest_simple_paths( )) produces
@@ -214,9 +232,15 @@ class ShortestForwarding(app_manager.RyuApp):
 		shortest_paths = self.awareness.shortest_paths
 		graph = self.awareness.graph
 
-		if weight == self.WEIGHT_MODEL['hop']:
+		flow = (src, dst, L4_Proto, L4_src_port, L4_dst_port)
+
+		# Mice flow will be forwarded by shortest path.
+		if weight == self.WEIGHT_MODEL['hop'] or flow not in self.monitor.ele_flow:
+			print "Forward flow by hop:", flow
 			return shortest_paths.get(src).get(dst)[0]
+
 		elif weight == self.WEIGHT_MODEL['fnum']:
+			print "Forward ele-flow by fnum:", flow
 			# Because all paths will be calculated when we call self.monitor.get_best_path_by_fnum,
 			# so we just need to call it once in a period, and then, we can get path directly.
 			# If path is existed just return it, else calculate and return it.
@@ -257,37 +281,63 @@ class ShortestForwarding(app_manager.RyuApp):
 			flow_info = (eth_type, src_ip, dst_ip, in_port)
 			or
 			flow_info = (eth_type, src_ip, dst_ip, in_port, ip_proto, Flag, L4_port)
+
+			or my definition:
+			flow_info = (eth_type, src_ip, dst_ip, in_port, L4_Proto, L4_src_port, L4_dst_port)
+			Where L4_Proto equals to ip_proto, and 'in_port' in flow_info equals to 'src_port' in send_flow_mod.
 		"""
 		parser = datapath.ofproto_parser
 		actions = []
 		actions.append(parser.OFPActionOutput(dst_port))
 		if len(flow_info) == 7:
+			# We need new process to build match.
+
+			# if flow_info[-3] == 6:
+			# 	if flow_info[-2] == 'src':
+			# 		match = parser.OFPMatch(
+			# 			in_port=src_port, eth_type=flow_info[0],
+			# 			ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
+			# 			ip_proto=6, tcp_src=flow_info[-1])
+			# 	elif flow_info[-2] == 'dst':
+			# 		match = parser.OFPMatch(
+			# 			in_port=src_port, eth_type=flow_info[0],
+			# 			ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
+			# 			ip_proto=6, tcp_dst=flow_info[-1])
+			# 	else:
+			# 		pass
+			# elif flow_info[-3] == 17:
+			# 	if flow_info[-2] == 'src':
+			# 		match = parser.OFPMatch(
+			# 			in_port=src_port, eth_type=flow_info[0],
+			# 			ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
+			# 			ip_proto=17, udp_src=flow_info[-1])
+			# 	elif flow_info[-2] == 'dst':
+			# 		match = parser.OFPMatch(
+			# 			in_port=src_port, eth_type=flow_info[0],
+			# 			ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
+			# 			ip_proto=17, udp_dst=flow_info[-1])
+			# 	else:
+			# 		pass
+
+			# Build match field of TCP flow entry.
 			if flow_info[-3] == 6:
-				if flow_info[-2] == 'src':
+				if flow_info[-2] is not None and flow_info[-1] is not None:
 					match = parser.OFPMatch(
-						in_port=src_port, eth_type=flow_info[0],
-						ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
-						ip_proto=6, tcp_src=flow_info[-1])
-				elif flow_info[-2] == 'dst':
-					match = parser.OFPMatch(
-						in_port=src_port, eth_type=flow_info[0],
-						ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
-						ip_proto=6, tcp_dst=flow_info[-1])
+								in_port=src_port, eth_type=flow_info[0],
+								ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
+								ip_proto=6, tcp_src=flow_info[-2], tcp_dst=flow_info[-1])
 				else:
 					pass
+			# Build match field of UDP flow entry.
 			elif flow_info[-3] == 17:
-				if flow_info[-2] == 'src':
+				if flow_info[-2] is not None and flow_info[-1] is not None:
 					match = parser.OFPMatch(
-						in_port=src_port, eth_type=flow_info[0],
-						ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
-						ip_proto=17, udp_src=flow_info[-1])
-				elif flow_info[-2] == 'dst':
-					match = parser.OFPMatch(
-						in_port=src_port, eth_type=flow_info[0],
-						ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
-						ip_proto=17, udp_dst=flow_info[-1])
+								in_port=src_port, eth_type=flow_info[0],
+								ipv4_src=flow_info[1], ipv4_dst=flow_info[2],
+								ip_proto=17, udp_src=flow_info[-2], udp_dst=flow_info[-1])
 				else:
 					pass
+
 		elif len(flow_info) == 4:
 			match = parser.OFPMatch(
 						in_port=src_port, eth_type=flow_info[0],
@@ -295,10 +345,10 @@ class ShortestForwarding(app_manager.RyuApp):
 		else:
 			pass
 
-		self.add_flow(datapath, 30, match, actions,
-					  idle_timeout=5, hard_timeout=0)
 		# self.add_flow(datapath, 30, match, actions,
-		# 			  idle_timeout=0, hard_timeout=0)
+		# 			  idle_timeout=5, hard_timeout=0)
+		self.add_flow(datapath, 30, match, actions,
+					  idle_timeout=0, hard_timeout=0)
 
 	def install_flow(self, datapaths, link_to_port, path, flow_info, buffer_id, data=None):
 		'''
@@ -307,6 +357,10 @@ class ShortestForwarding(app_manager.RyuApp):
 			flow_info = (eth_type, src_ip, dst_ip, in_port)
 			or
 			flow_info = (eth_type, src_ip, dst_ip, in_port, ip_proto, Flag, L4_port)
+
+			or my definition:
+			flow_info = (eth_type, src_ip, dst_ip, in_port, L4_Proto, L4_src_port, L4_dst_port)
+			Where L4_Proto equals to ip_proto.
 		'''
 		if path is None or len(path) == 0:
 			self.logger.info("Path error!")
@@ -322,9 +376,14 @@ class ShortestForwarding(app_manager.RyuApp):
 			if port and port_next:
 				src_port, dst_port = port[1], port_next[0]
 				datapath = datapaths[path[i]]
-				self.send_flow_mod(datapath, flow_info, src_port, dst_port)
+				# Only install flow entry for edge and aggregate switches.
+				# TODO: We need install both ele- and mice-flow entries for edge switches,
+				#  		but only ele-flow entries for aggregate switches.
+				if datapath.id > 2000:
+					self.send_flow_mod(datapath, flow_info, src_port, dst_port)
 
-		#  Install flow entry for the first datapath.
+		# Install flow entry for the first datapath.
+		# First switches must be edge switch.
 		port_pair = self.get_port_pair_from_link(link_to_port, path[0], path[1])
 		if port_pair is None:
 			self.logger.info("Port not found in first hop.")
@@ -365,12 +424,16 @@ class ShortestForwarding(app_manager.RyuApp):
 			pass
 		return (ip_proto, L4_port, Flag)
 
-	def shortest_forwarding(self, msg, eth_type, ip_src, ip_dst):
+	def shortest_forwarding(self, msg, eth_type, ip_src, ip_dst, L4_Proto=None, L4_src_port=None, L4_dst_port=None):
 		"""
 			Calculate shortest forwarding path and Install them into datapaths.
 			flow_info = (eth_type, ip_src, ip_dst, in_port)
 			or
 			flow_info = (eth_type, ip_src, ip_dst, in_port, ip_proto, Flag, L4_port)
+
+			or my definition:
+			flow_info = (eth_type, src_ip, dst_ip, in_port, L4_Proto, L4_src_port, L4_dst_port)
+			Where L4_Proto equals to ip_proto.
 		"""
 		datapath = msg.datapath
 		in_port = msg.match['in_port']
@@ -379,7 +442,14 @@ class ShortestForwarding(app_manager.RyuApp):
 			src_sw, dst_sw = result[0], result[1]
 			if dst_sw:
 				# Path has already been calculated, just get it.
-				path = self.get_path(src_sw, dst_sw, weight=self.weight)
+				if L4_Proto is None:
+					# Shortest forwarding by default.
+					path = self.get_path(src_sw, dst_sw, weight=self.WEIGHT_MODEL['hop'])
+				else:
+					# Forwarding by fnum.
+					# We need pass L4 port information to get_path for path selection.
+					path = self.get_path(src_sw, dst_sw, L4_Proto, L4_src_port, L4_dst_port, weight=self.weight)
+
 				if setting.enable_Flow_Entry_L4Port:
 					pkt = packet.Packet(msg.data)
 					tcp_pkt = pkt.get_protocol(tcp.tcp)
@@ -395,13 +465,25 @@ class ShortestForwarding(app_manager.RyuApp):
 							pass
 						self.logger.info("[PATH]%s<-->%s(%s Port:%d): %s" % (ip_src, ip_dst, L4_Proto, L4_port, path))
 						flow_info = (eth_type, ip_src, ip_dst, in_port, ip_proto, Flag, L4_port)
+
 				else:
-					self.logger.info("[PATH]%s<-->%s: %s" % (ip_src, ip_dst, path))
-					flow_info = (eth_type, ip_src, ip_dst, in_port)
+					# Log more information.
+					# We need install flow contained L4 port information.
+					flow = (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port)
+
+					if L4_Proto is not None:
+						self.logger.info("[PATH]%s<-->%s: %s, ip proto:%s, from %s to %s."
+										 % (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port, path))
+						flow_info = (eth_type, ip_src, ip_dst, in_port, L4_Proto, L4_src_port, L4_dst_port)
+					else:
+						self.logger.info("[PATH]%s<-->%s: %s"
+										 % (ip_src, ip_dst, path))
+						flow_info = (eth_type, ip_src, ip_dst, in_port)
+
 				# Install flow entries to datapaths along the path.
-				self.install_flow(self.datapaths,
-								  self.awareness.link_to_port,
+				self.install_flow(self.datapaths, self.awareness.link_to_port,
 								  path, flow_info, msg.buffer_id, msg.data)
 		else:
 			# Flood is not good.
 			self.flood(msg)
+

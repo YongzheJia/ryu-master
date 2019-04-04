@@ -307,22 +307,22 @@ def traffic_generation(net, topo, flows_peers):
 	for server in serversList:
 		# filename = server[1:]
 		server = net.get(server)
-		# server.cmd("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
-		server.cmd("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
+		# server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
+		server.cmdPrint("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
 
-	time.sleep(3)
+	time.sleep(1)
 
 	# Start the clients.
 	for src, dest in flows_peers:
 		server = net.get(dest)
 		client = net.get(src)
 		# filename = src[1:]
-		# client.cmd("iperf -c %s -t %d > %s/%s &" % (server.IP(), args.duration, args.output_dir, 'client'+filename+'.txt'))
-		client.cmd("iperf -c %s -t %d > /dev/null &" % (server.IP(), 1990))   # Its statistics is useless, just throw away. 1990 just means a great number.
-		time.sleep(2)
+		# client.cmdPrint("iperf -c %s -t %d > %s/%s &" % (server.IP(), args.duration, args.output_dir, 'client'+filename+'.txt'))
+		client.cmdPrint("iperf -c %s -t %d > /dev/null &" % (server.IP(), 1990))   # Its statistics is useless, just throw away. 1990 just means a great number.
+		time.sleep(1)
 
 	# Wait for the traffic to become stable.
-	time.sleep(5)
+	time.sleep(2)
 
 	# 2. Start bwm-ng to monitor throughput.
 	monitor = Process(target = monitor_devs_ng, args = ('%s/bwmng.txt' % args.output_dir, 1.0))

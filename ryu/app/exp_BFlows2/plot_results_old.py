@@ -303,21 +303,13 @@ def plot_results():
 	"""
 	full_bisection_bw = 10.0 * (args.k ** 3 / 4)   # (unit: Mbit/s)
 	utmost_throughput = full_bisection_bw * args.duration
-
-	# my code-----------------------------------------------------------------------------------------------------------
 	# _traffics = "random stag_0.2_0.3 stag_0.3_0.3 stag_0.4_0.3 stag_0.5_0.3 stag_0.6_0.2 stag_0.7_0.2 stag_0.8_0.1"
 	# _traffics = "random1 random2 stag1_0.2_0.3 stag2_0.2_0.3 stag1_0.3_0.3 stag2_0.3_0.3 stag1_0.4_0.3 stag2_0.4_0.3 stag1_0.5_0.3 stag2_0.5_0.3 stag1_0.6_0.2 stag2_0.6_0.2 stag1_0.7_0.2 stag2_0.7_0.2 stag1_0.8_0.1 stag2_0.8_0.1"
 	# _traffics = "random1 random2 random3 stag1_0.1_0.2 stag2_0.1_0.2 stag3_0.1_0.2 stag1_0.2_0.3 stag2_0.2_0.3 stag3_0.2_0.3 stag1_0.3_0.3 stag2_0.3_0.3 stag3_0.3_0.3 stag1_0.4_0.3 stag2_0.4_0.3 stag3_0.4_0.3 stag1_0.5_0.3 stag2_0.5_0.3 stag3_0.5_0.3 stag1_0.6_0.2 stag2_0.6_0.2 stag3_0.6_0.2 stag1_0.7_0.2 stag2_0.7_0.2 stag3_0.7_0.2 stag1_0.8_0.1 stag2_0.8_0.1 stag3_0.8_0.1"
-	# _traffics = "random stag1_0.1_0.2"
-	_traffics = "random"
-	# my code-----------------------------------------------------------------------------------------------------------
+	_traffics = "random stag_0.2_0.3 stag_0.3_0.3 stag_0.4_0.3 stag_0.5_0.3 stag_0.6_0.2 stag_0.7_0.2 stag_0.8_0.1"
 
 	traffics = _traffics.split(' ')
-	# my code-----------------------------------------------------------------------------------------------------------
-	# apps = ['BFlows']
 	apps = ['BFlows', 'ECMP', 'PureSDN', 'Hedera', 'NonBlocking']
-	# my code-----------------------------------------------------------------------------------------------------------
-
 	throughput = {}
 	utilization = {}
 
@@ -330,35 +322,24 @@ def plot_results():
 	# 1. Plot realtime throughput.
 	item = 'realtime_bisection_bw'
 	fig = plt.figure()
-	# my code-----------------------------------------------------------------------------------------------------------
-	fig.set_size_inches(20, 16)
-	# fig.set_size_inches(20, 34)
-	# my code-----------------------------------------------------------------------------------------------------------
-
+	fig.set_size_inches(20, 34)
 	num_subplot = len(traffics)
-	print "len(traffics)", len(traffics)
-	# my code-----------------------------------------------------------------------------------------------------------
-	# num_raw = 9
-	# num_column = num_subplot / num_raw
-	num_column = 3
-	num_raw = num_subplot / num_column + 1
-	# print "num_column, num_raw:", num_column, num_raw
-
+	num_raw = 9
+	num_column = num_subplot / num_raw
 	NO_subplot = 1
 	x = np.arange(0, args.duration + 1)
 	for traffic in traffics:
-		# print "plot fig%s..." %NO_subplot
 		plt.subplot(num_raw, num_column, NO_subplot)
 		y1 = get_value_list_1(throughput, traffic, item, 'BFlows')
 		y2 = get_value_list_1(throughput, traffic, item, 'ECMP')
 		y3 = get_value_list_1(throughput, traffic, item, 'PureSDN')
 		y4 = get_value_list_1(throughput, traffic, item, 'Hedera')
 		y5 = get_value_list_1(throughput, traffic, item, 'NonBlocking')
-		plt.plot(x, y1, 'r-', linewidth=1, label="BFlows")
-		plt.plot(x, y2, 'b-', linewidth=1, label="ECMP")
-		plt.plot(x, y3, 'g-', linewidth=1, label="PureSDN")
-		plt.plot(x, y4, 'y-', linewidth=1, label="Hedera")
-		plt.plot(x, y5, 'k-', linewidth=1, label="NonBlocking")
+		plt.plot(x, y1, 'r-', linewidth=2, label="BFlows")
+		plt.plot(x, y2, 'b-', linewidth=2, label="ECMP")
+		plt.plot(x, y3, 'g-', linewidth=2, label="PureSDN")
+		plt.plot(x, y4, 'y-', linewidth=2, label="Hedera")
+		plt.plot(x, y5, 'k-', linewidth=2, label="NonBlocking")
 		plt.title('%s' % traffic, fontsize='x-large')
 		plt.xlabel('Time (s)', fontsize='x-large')
 		plt.xlim(0, args.duration)
@@ -367,80 +348,52 @@ def plot_results():
 		plt.ylim(0, full_bisection_bw)
 		plt.yticks(np.linspace(0, full_bisection_bw, 11))
 		plt.legend(loc='upper right', ncol=len(apps), fontsize='xx-small')
-		# plt.grid(True)
-		plt.grid(False)
+		plt.grid(True)
 		NO_subplot += 1
-	plt.subplots_adjust(top=0.93, bottom=0.1, left=0.13, right=0.95, hspace=0.25, wspace=0.35)
+	plt.subplots_adjust(top=0.98, bottom=0.02, left=0.1, right=0.95, hspace=0.25, wspace=0.35)
 	plt.savefig(args.out_dir + '/%s-1.realtime_throughput.png' % args.flows_num_per_host)
 
 	# 2. Plot average throughput.
 	fig = plt.figure()
-	# my code-----------------------------------------------------------------------------------------------------------
-	fig.set_size_inches(12, 30)
-	# fig.set_size_inches(12, 15)
-	# my code-----------------------------------------------------------------------------------------------------------
-
-	# num_subplot = 3
-	num_subplot = len(traffics)
-	# my code-----------------------------------------------------------------------------------------------------------
-	# num_raw = 3
-	# num_column = 3
-	# num_column = num_subplot / num_raw
-
-	num_column = 2
-	num_raw = num_subplot / num_column +1
-
+	fig.set_size_inches(12, 15)
+	num_subplot = 3
+	num_raw = 3
+	num_column = num_subplot / num_raw
 	num_groups = len(traffics) / num_subplot
 	num_bar = len(apps)
 	NO_subplot = 1
-
 	for num in xrange(num_subplot):
-		# num_groups = NO_subplot - 1
 		plt.subplot(num_raw, num_column, NO_subplot)
-
-		# TODO
-		# Maybe there need function calculate_average to calculate average throughput if there are more than
-		# one value. For example, 20 repeated independent experiments for calculating average throughput in
-		# this paper.
-
 		ECMP_value_list = get_average_bisection_bw(throughput, traffics, 'ECMP', num, num_groups)
-		# print "ECMP_value_list:", ECMP_value_list
 		Hedera_value_list = get_average_bisection_bw(throughput, traffics, 'Hedera', num, num_groups)
 		PureSDN_value_list = get_average_bisection_bw(throughput, traffics, 'PureSDN', num, num_groups)
 		BFlows_value_list = get_average_bisection_bw(throughput, traffics, 'BFlows', num, num_groups)
 		NonBlocking_value_list = get_average_bisection_bw(throughput, traffics, 'NonBlocking', num, num_groups)
 		index = np.arange(num_groups) + 0.15
-		bar_width = 0.06
+		bar_width = 0.13
 		plt.bar(index, ECMP_value_list, bar_width, color='b', label='ECMP')
-		plt.bar(index + 1.5 * bar_width, Hedera_value_list, bar_width, color='y', label='Hedera')
-		plt.bar(index + 3 * bar_width, PureSDN_value_list, bar_width, color='g', label='PureSDN')
-		plt.bar(index + 4.5 * bar_width, BFlows_value_list, bar_width, color='r', label='BFlows')
-		plt.bar(index + 6 * bar_width, NonBlocking_value_list, bar_width, color='k', label='NonBlocking')
+		plt.bar(index + 1 * bar_width, Hedera_value_list, bar_width, color='y', label='Hedera')
+		plt.bar(index + 2 * bar_width, PureSDN_value_list, bar_width, color='g', label='PureSDN')
+		plt.bar(index + 3 * bar_width, BFlows_value_list, bar_width, color='r', label='BFlows')
+		plt.bar(index + 4 * bar_width, NonBlocking_value_list, bar_width, color='k', label='NonBlocking')
 		plt.xticks(index + num_bar / 2.0 * bar_width, traffics[(num * num_groups): (num * num_groups + num_groups)], fontsize='small')
 		plt.ylabel('Average Throughput\n(Mbps)', fontsize='x-large')
 		plt.ylim(0, full_bisection_bw)
 		plt.yticks(np.linspace(0, full_bisection_bw, 11))
 		plt.legend(loc='upper right', ncol=len(apps), fontsize='small')
 		plt.tight_layout()
-		# plt.grid(True)
-		plt.grid(False)
+		plt.grid(axis='y')
 		NO_subplot += 1
-	plt.subplots_adjust(top=0.97, bottom=0.03, left=0.13, right=0.95, hspace=0.25, wspace=0.35)
+	plt.subplots_adjust(top=0.95, bottom=0.05, left=0.1, right=0.95, hspace=0.15, wspace=0.35)
 	plt.savefig(args.out_dir + '/%s-2.average_throughput.png' % args.flows_num_per_host)
 
 	# 3. Plot accumulated throughput.
 	item = 'accumulated_throughput'
 	fig = plt.figure()
-	# my code-----------------------------------------------------------------------------------------------------------
-	# fig.set_size_inches(8, 6)
 	fig.set_size_inches(20, 34)
-	# my code-----------------------------------------------------------------------------------------------------------
-
 	num_subplot = len(traffics)
-	# my code-----------------------------------------------------------------------------------------------------------
-	# num_raw = 9
-	num_column = 3
-	num_raw = num_subplot / num_column + 1
+	num_raw = 9
+	num_column = num_subplot / num_raw
 	NO_subplot = 1
 	x = np.arange(0, args.duration + 1)
 	for traffic in traffics:
@@ -462,30 +415,19 @@ def plot_results():
 		plt.ylabel('Accumulated Throughput\n(Mbit)', fontsize='x-large')
 		plt.ylim(0, utmost_throughput)
 		plt.yticks(np.linspace(0, utmost_throughput, 11))
-		plt.legend(loc='upper left', fontsize='x-small')
-		# plt.grid(True)
-		plt.grid(False)
+		plt.legend(loc='upper left', fontsize='x-large')
+		plt.grid(True)
 		NO_subplot += 1
-	plt.subplots_adjust(top=0.93, bottom=0.1, left=0.13, right=0.95, hspace=0.25, wspace=0.35)
+	plt.subplots_adjust(top=0.98, bottom=0.02, left=0.1, right=0.95, hspace=0.25, wspace=0.35)
 	plt.savefig(args.out_dir + '/%s-3.accumulated_throughput.png' % args.flows_num_per_host)
 
 	# 4. Plot normalized total throughput.
 	item = 'normalized_total_throughput'
 	fig = plt.figure()
-	# my code-----------------------------------------------------------------------------------------------------------
-	# fig.set_size_inches(8, 6)
 	fig.set_size_inches(12, 15)
-	# my code-----------------------------------------------------------------------------------------------------------
-
-	num_subplot = len(traffics)
-	# num_subplot = 3
-	# my code-----------------------------------------------------------------------------------------------------------
-	# num_raw = 3
-	# num_column = num_subplot / num_raw
-
-	num_column = 3
-	num_raw = num_subplot / num_column + 1
-
+	num_subplot = 3
+	num_raw = 3
+	num_column = num_subplot / num_raw
 	num_groups = len(traffics) / num_subplot
 	num_bar = len(apps)
 	NO_subplot = 1
@@ -499,37 +441,28 @@ def plot_results():
 		index = np.arange(num_groups) + 0.15
 		bar_width = 0.13
 		plt.bar(index, ECMP_value_list, bar_width, color='b', label='ECMP')
-		plt.bar(index + 1.5 * bar_width, Hedera_value_list, bar_width, color='y', label='Hedera')
-		plt.bar(index + 3 * bar_width, PureSDN_value_list, bar_width, color='g', label='PureSDN')
-		plt.bar(index + 4.5 * bar_width, BFlows_value_list, bar_width, color='r', label='BFlows')
-		plt.bar(index + 6 * bar_width, NonBlocking_value_list, bar_width, color='k', label='NonBlocking')
+		plt.bar(index + 1 * bar_width, Hedera_value_list, bar_width, color='y', label='Hedera')
+		plt.bar(index + 2 * bar_width, PureSDN_value_list, bar_width, color='g', label='PureSDN')
+		plt.bar(index + 3 * bar_width, BFlows_value_list, bar_width, color='r', label='BFlows')
+		plt.bar(index + 4 * bar_width, NonBlocking_value_list, bar_width, color='k', label='NonBlocking')
 		plt.xticks(index + num_bar / 2.0 * bar_width, traffics[(num * num_groups): (num * num_groups + num_groups)], fontsize='small')
 		plt.ylabel('Normalized Total Throughput\n', fontsize='x-large')
 		plt.ylim(0, 1)
 		plt.yticks(np.linspace(0, 1, 11))
 		plt.legend(loc='upper right', ncol=len(apps), fontsize='small')
 		plt.tight_layout()
-		# plt.grid(axis='y')
-		plt.grid(False)
+		plt.grid(axis='y')
 		NO_subplot += 1
-	plt.subplots_adjust(top=0.93, bottom=0.1, left=0.13, right=0.95, hspace=0.25, wspace=0.35)
+	plt.subplots_adjust(top=0.95, bottom=0.05, left=0.1, right=0.95, hspace=0.15, wspace=0.35)
 	plt.savefig(args.out_dir + '/%s-4.normalized_total_throughput.png' % args.flows_num_per_host)
 
 
 	# 5. Plot link utilization ratio.
 	fig = plt.figure()
-	# my code-----------------------------------------------------------------------------------------------------------
-	# fig.set_size_inches(8, 6)
 	fig.set_size_inches(12, 15)
-	# my code-----------------------------------------------------------------------------------------------------------
-	num_subplot = len(traffics)
-	# num_subplot = 3
-	# num_raw = 3
-	# num_column = num_subplot / num_raw
-
-	num_column = 3
-	num_raw = num_subplot / num_column + 1
-
+	num_subplot = 3
+	num_raw = 3
+	num_column = num_subplot / num_raw
 	num_groups = len(traffics) / num_subplot
 	num_bar = len(apps) - 1
 	NO_subplot = 1
@@ -542,32 +475,26 @@ def plot_results():
 		index = np.arange(num_groups) + 0.15
 		bar_width = 0.15
 		plt.bar(index, ECMP_value_list, bar_width, color='b', label='ECMP')
-		plt.bar(index + 1.5 * bar_width, Hedera_value_list, bar_width, color='y', label='Hedera')
-		plt.bar(index + 3 * bar_width, PureSDN_value_list, bar_width, color='g', label='PureSDN')
-		plt.bar(index + 4.5 * bar_width, BFlows_value_list, bar_width, color='r', label='BFlows')
+		plt.bar(index + 1 * bar_width, Hedera_value_list, bar_width, color='y', label='Hedera')
+		plt.bar(index + 2 * bar_width, PureSDN_value_list, bar_width, color='g', label='PureSDN')
+		plt.bar(index + 3 * bar_width, BFlows_value_list, bar_width, color='r', label='BFlows')
 		plt.xticks(index + num_bar / 2.0 * bar_width, traffics[(num * num_groups): (num * num_groups + num_groups)], fontsize='small')
 		plt.ylabel('Link utilization Ratio\n', fontsize='x-large')
 		plt.ylim(0, 1)
 		plt.yticks(np.linspace(0, 1, 11))
 		plt.legend(loc='lower right', ncol=len(apps)-1, fontsize='small')
 		plt.tight_layout()
-		# plt.grid(axis='y')
-		plt.grid(False)
+		plt.grid(axis='y')
 		NO_subplot += 1
-	plt.subplots_adjust(top=0.93, bottom=0.1, left=0.13, right=0.95, hspace=0.25, wspace=0.35)
+	plt.subplots_adjust(top=0.95, bottom=0.05, left=0.1, right=0.95, hspace=0.15, wspace=0.35)
 	plt.savefig(args.out_dir + '/%s-5.link_utilization_ratio.png' % args.flows_num_per_host)
 
 	# 6. Plot link bandwidth utilization ratio.
 	fig = plt.figure()
-	fig.set_size_inches(8, 6)
-	fig.set_size_inches(12, 15)
+	fig.set_size_inches(20, 34)
 	num_subplot = len(traffics)
-	# num_raw = 9
-	# num_column = num_subplot / num_raw
-
-	num_column = 3
-	num_raw = num_subplot / num_column + 1
-
+	num_raw = 9
+	num_column = num_subplot / num_raw
 	NO_subplot = 1
 	x = np.linspace(0, 1, 101)
 	for traffic in traffics:
@@ -588,12 +515,11 @@ def plot_results():
 		plt.ylim(0, 1)
 		plt.yticks(np.linspace(0, 1, 11))
 		plt.legend(loc='lower right', ncol=len(apps)-1, fontsize='xx-small')
-		plt.grid(False)
+		plt.grid(True)
 		NO_subplot += 1
-	plt.subplots_adjust(top=0.93, bottom=0.1, left=0.13, right=0.95, hspace=0.25, wspace=0.35)
+	plt.subplots_adjust(top=0.98, bottom=0.02, left=0.1, right=0.95, hspace=0.25, wspace=0.35)
 	plt.savefig(args.out_dir + '/%s-6.link_bandwidth_utilization_ratio.png' % args.flows_num_per_host)
 
 
 if __name__ == '__main__':
 	plot_results()
-

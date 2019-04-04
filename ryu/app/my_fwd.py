@@ -21,7 +21,9 @@ from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ether_types
-
+import time
+from ryu.lib.packet import tcp
+from ryu.lib.packet import udp
 
 class SimpleSwitch13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -52,11 +54,33 @@ class SimpleSwitch13(app_manager.RyuApp):
                                 match=match, instructions=inst)
         datapath.send_msg(mod)
 
-        # actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
+        # # actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
+        # #                                   ofproto.OFPCML_NO_BUFFER)]
+        # actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL,
         #                                   ofproto.OFPCML_NO_BUFFER)]
-        actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL,
-                                          ofproto.OFPCML_NO_BUFFER)]
-        self.add_flow(datapath, 1, 0, match, actions)
+        # self.add_flow(datapath, 1, 0, match, actions)
+
+        # print "Install flow entries."
+        # match1 = parser.OFPMatch(in_port=1, eth_dst="00:00:00:00:00:02", eth_src="00:00:00:00:00:01")
+        match1 = parser.OFPMatch(in_port=1)
+
+        actions1 = [parser.OFPActionOutput(2)]
+        actions1.append(parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
+                                               ofproto.OFPCML_NO_BUFFER))
+        self.add_flow(datapath, 1, 0, match1, actions1)
+
+        # match2 = parser.OFPMatch(in_port=2, eth_dst="00:00:00:00:00:01", eth_src="00:00:00:00:00:02")
+        match2 = parser.OFPMatch(in_port=2)
+        actions2 = [parser.OFPActionOutput(1)]
+        actions2.append(parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
+                                               ofproto.OFPCML_NO_BUFFER))
+        self.add_flow(datapath, 1, 0, match2, actions2)
+
+        # time.sleep(10)
+        # print "Modify flow entries."
+        # actions = []
+        # self.add_flow(datapath, 1, 0, match1, actions)
+        # self.add_flow(datapath, 1, 0, match2, actions)
 
 
     def add_flow(self, datapath, table_id, priority, match, actions, buffer_id=None):
@@ -128,5 +152,25 @@ class SimpleSwitch13(app_manager.RyuApp):
         # out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
         #                           in_port=in_port, actions=actions, data=data)
         # datapath.send_msg(out)
-        pass
+
+        # print "packet-in:"
+        msg = ev.msg
+        datapath = msg.datapath
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        pkt = packet.Packet(msg.data)
+        tcp_pkt = pkt.get_protocol(tcp.tcp)
+        udp_pkt = pkt.get_protocol(udp.udp)
+
+        print "tcp_pkt:", tcp_pkt
+        # print "udp_pkt:", udp_pkt
+
+        if tcp_pkt:
+            print "\nin_port:", msg.match['in_port']
+            print "tcp_pkt.src_port", tcp_pkt.src_port
+            print "tcp_pkt.dst_port", tcp_pkt.dst_port
+            print "\n"
+
+
 

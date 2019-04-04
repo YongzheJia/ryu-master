@@ -29,6 +29,8 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib import hub
 
+# import network_awareness
+
 import setting
 
 
@@ -45,6 +47,8 @@ class NetworkMonitor(app_manager.RyuApp):
 		super(NetworkMonitor, self).__init__(*args, **kwargs)
 		self.name = 'monitor'
 		self.datapaths = {}
+		self.edge_datapaths = {}
+		self.core_agg_datapaths = {}
 		self.port_stats = {}
 		self.port_speed = {}
 		self.stats = {}
@@ -54,6 +58,12 @@ class NetworkMonitor(app_manager.RyuApp):
 		self.awareness = lookup_service_brick('awareness')
 		self.graph = None
 		self.best_paths = None
+		# self.cur_best_paths = self.awareness.shortest_paths  # store the best_paths in pre_period.
+		self.cur_best_paths = None
+
+		# Save ele and mice flow.
+		self.ele_flow = []
+		self.mice_flow = []
 
 		# Start to green thread to monitor traffic and calculating
 		# flow number of links respectively.
@@ -66,9 +76,11 @@ class NetworkMonitor(app_manager.RyuApp):
 		"""
 		while CONF.weight == 'fnum':
 			self.stats['port'] = {}
+
 			for dp in self.datapaths.values():
 				self.port_features.setdefault(dp.id, {})
 				self._request_stats(dp)
+
 			# Refresh data.
 			self.best_paths = None
 			hub.sleep(setting.MONITOR_PERIOD)
@@ -98,10 +110,26 @@ class NetworkMonitor(app_manager.RyuApp):
 			if not datapath.id in self.datapaths:
 				self.logger.debug('register datapath: %016x', datapath.id)
 				self.datapaths[datapath.id] = datapath
+
+				# Register edge-switches and other switches.
+				if datapath.id > 3000:
+					self.edge_datapaths[datapath.id] = datapath
+					# print "edge_dp:", datapath.id
+				# Register other switches.
+				else:
+					self.core_agg_datapaths[datapath.id] = datapath
+
 		elif ev.state == DEAD_DISPATCHER:
 			if datapath.id in self.datapaths:
 				self.logger.debug('unregister datapath: %016x', datapath.id)
 				del self.datapaths[datapath.id]
+
+			# delete datapath in edge_datapaths and core_agg_datapaths
+			if datapath.id in self.edge_datapaths[datapath.id]:
+				del self.edge_datapaths[datapath.id]
+			elif datapath.id in self.core_agg_datapaths[datapath.id]:
+				del self.core_agg_datapaths[datapath.id]
+
 		else:
 			pass
 
@@ -111,9 +139,14 @@ class NetworkMonitor(app_manager.RyuApp):
 			Calculate flow speed and Save it.
 			Note: table-miss, LLDP and ARP flow entries are not what we need, just filter them.
 		"""
+		# self.logger.info("flow_stats_rcv")
+		# print "flow_stats_rcv"
 		body = ev.msg.body
-		dpid = ev.msg.datapath.id
-		self.flow_num.setdefault(dpid, {})
+
+		# We need init flow_num for all of switches.
+		# dpid = ev.msg.datapath.id
+		# self.flow_num.setdefault(dpid, {})
+
 		for stat in sorted([flow for flow in body if (flow.priority not in [0, 65535])]):
 			# Get flow's speed and record it.
 			duration = self._get_time(stat.duration_sec, stat.duration_nsec)
@@ -121,8 +154,90 @@ class NetworkMonitor(app_manager.RyuApp):
 				duration = 0.1
 			speed = float(stat.byte_count) / duration   # unit: byte/s
 			_speed = speed * 8.0 / (setting.MAX_CAPACITY * 1000)
+
+			# Ele_flow detection
 			if _speed >= 0.05:
-				self._save_fnum(dpid, stat.instructions[0].actions[0].port)
+				ip_src = stat.match['ipv4_src']
+				ip_dst = stat.match['ipv4_dst']
+				L4_Proto = stat.match['ip_proto']
+				L4_src_port = stat.match['tcp_src']
+				L4_dst_port = stat.match['tcp_dst']
+				flow = (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port)
+				self.ele_flow.append(flow)
+				print "ele_dtc:", flow
+
+				# Structure of stat
+				# print stat
+				# OFPFlowStats(byte_count=12894432,cookie=0,duration_nsec=271000000,duration_sec=33,flags=0,
+				# hard_timeout=0,idle_timeout=0,
+				# instructions=[OFPInstructionActions(actions=[OFPActionOutput(len=16,max_len=65509,port=2,type=0)],len=24,type=4)],length=128,
+				# match=OFPMatch(oxm_fields={'ipv4_dst': '10.3.0.1', 'tcp_src': 45274, 'ipv4_src': '10.7.0.1', 'eth_type': 2048, 'tcp_dst': 5001, 'ip_proto': 6, 'in_port': 3}),
+				# packet_count=4892,priority=30,table_id=1)
+
+				# Now we have only obtained upload-flow statistics information in edge switches, so we
+				# need to calculate up and download-flow statistics information in core and agg switches.
+				# In other words, we need calculate the path every flow passed and then update the flow_num
+				# in core and agg switches.
+
+				# self._save_fnum(dpid, stat.instructions[0].actions[0].port)
+				src_ip = stat.match['ipv4_src']
+				dst_ip = stat.match['ipv4_dst']
+
+				access_table = self.awareness.access_table
+				# src_dp = sw[0] for sw in access_table.keys() if access_table[sw][0] == src_ip
+				for sw in access_table.keys():
+					if access_table[sw][0] == src_ip:
+						src_dp = sw[0]
+						# print "src_ip,src_dp:", src_ip, src_dp
+
+				for sw in access_table.keys():
+					if access_table[sw][0] == dst_ip:
+						dst_dp = sw[0]
+						# print "dst_ip,dst_dp:", dst_ip, dst_dp
+
+				# Calculate flow_num in core and agg switches.
+				# print "cur_best_paths:\n", self.cur_best_paths
+				if self.cur_best_paths is None:
+					flow_path = self.awareness.shortest_paths.get(src_dp).get(dst_dp)
+				else:
+					flow_path = self.cur_best_paths.get(src_dp).get(dst_dp)
+				# print "Ele_flow %s(%s) to %s(%s) :" % (src_ip, src_dp, dst_ip, dst_dp), flow_path
+
+				# print "try to save flow_num..."
+				link_to_port = self.awareness.link_to_port
+				# for link, port in link_to_port.items():
+				# 	(src_dpid, dst_dpid) = link
+				# 	(src_port, dst_port) = port
+				if len(flow_path) > 1:
+					for i in xrange(0, len(flow_path)-1):
+						dpid = flow_path[i]
+						next_dpid = flow_path[i+1]
+						port_no = link_to_port[(dpid, next_dpid)][0]
+						self.flow_num.setdefault(dpid, {})
+						self._save_fnum(dpid, port_no)
+						# print "Save flow_num(dpid port_no):", dpid, port_no
+				# try:
+				# 	print "try to save flow_num..."
+				# 	link_to_port = self.awareness.link_to_port
+				# 	# for link, port in link_to_port.items():
+				# 	# 	(src_dpid, dst_dpid) = link
+				# 	# 	(src_port, dst_port) = port
+				# 	if len(flow_path) > 1:
+				# 		for i in xrange(0, len(flow_path)-1):
+				# 			dpid = flow_path[i]
+				# 			next_dpid = flow_path[i+1]
+				# 			port_no = link_to_port[(dpid, next_dpid)][0]
+				# 			self._save_fnum(dpid, port_no)
+				# 			print "Save flow_num(dpid port_no):", dpid, port_no
+				#
+				# except:
+				# 	self.logger.info("Save flow exception")
+				# 	if self.awareness is None:
+				# 		self.awareness = lookup_service_brick('awareness')
+
+				# self._save_fnum(dpid, stat.instructions[0].actions[0].port)
+
+				# print "ele_flow from %s:" %dpid, stat.instructions[0].actions[0]
 
 	@set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
 	def _port_stats_reply_handler(self, ev):
@@ -234,8 +349,15 @@ class NetworkMonitor(app_manager.RyuApp):
 		datapath.send_msg(req)
 		req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
 		datapath.send_msg(req)
-		req = parser.OFPFlowStatsRequest(datapath)
-		datapath.send_msg(req)
+
+		# only monitor flow statistics information in edge_datapaths
+		# print "to send flow_stats_request..."
+		if datapath.id in self.edge_datapaths.keys():
+			# req = parser.OFPFlowStatsRequest(datapath)
+			tid_mnt = 1
+			req = parser.OFPFlowStatsRequest(datapath=datapath, table_id=tid_mnt)
+			datapath.send_msg(req)
+			# print "send flow_stats to:", datapath.id
 
 	def get_max_fnum_of_links(self, graph, path, max_fnum):
 		"""
@@ -312,6 +434,8 @@ class NetworkMonitor(app_manager.RyuApp):
 					best_paths[src][dst] = best_path
 
 		self.best_paths = best_paths
+		# Save the best paths to avoid it to be refreshed.
+		self.cur_best_paths = best_paths
 		return best_paths
 
 	def zero_dictionary(self, fnum_dict):
@@ -358,12 +482,17 @@ class NetworkMonitor(app_manager.RyuApp):
 			return self.awareness.graph
 
 	def _save_fnum(self, dpid, port_no):
+	# def _save_fnum(self, dpid, port_no, src, dst):
 		"""
 			Record flow number of port.
 			port_feature = (config, state, p.curr_speed)
 			self.port_features[dpid][p.port_no] = port_feature
 			self.flow_num = {dpid:{port_no:num,},}
 		"""
+
+
+
+
 		port_state = self.port_features.get(dpid).get(port_no)
 		if port_state:
 			self.flow_num[dpid].setdefault(port_no, 0)

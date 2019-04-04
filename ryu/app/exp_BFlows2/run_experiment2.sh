@@ -31,7 +31,8 @@ trap ctrlc INT
 # Change it if needed.
 # traffics="random stag_0.2_0.3 stag_0.3_0.3 stag_0.4_0.3 stag_0.5_0.3 stag_0.6_0.2 stag_0.7_0.2 stag_0.8_0.1"
 # traffics="random1 random2 stag1_0.2_0.3 stag2_0.2_0.3 stag1_0.3_0.3 stag2_0.3_0.3 stag1_0.4_0.3 stag2_0.4_0.3 stag1_0.5_0.3 stag2_0.5_0.3 stag1_0.6_0.2 stag2_0.6_0.2 stag1_0.7_0.2 stag2_0.7_0.2 stag1_0.8_0.1 stag2_0.8_0.1"
-#traffics="random1 random2 random3 stag1_0.1_0.2 stag2_0.1_0.2 stag3_0.1_0.2 stag1_0.2_0.3 stag2_0.2_0.3 stag3_0.2_0.3 stag1_0.3_0.3 stag2_0.3_0.3 stag3_0.3_0.3 stag1_0.4_0.3 stag2_0.4_0.3 stag3_0.4_0.3 stag1_0.5_0.3 stag2_0.5_0.3 stag3_0.5_0.3 stag1_0.6_0.2 stag2_0.6_0.2 stag3_0.6_0.2 stag1_0.7_0.2 stag2_0.7_0.2 stag3_0.7_0.2 stag1_0.8_0.1 stag2_0.8_0.1 stag3_0.8_0.1"
+# traffics="random1 random2 random3 stag1_0.1_0.2 stag2_0.1_0.2 stag3_0.1_0.2 stag1_0.2_0.3 stag2_0.2_0.3 stag3_0.2_0.3 stag1_0.3_0.3 stag2_0.3_0.3 stag3_0.3_0.3 stag1_0.4_0.3 stag2_0.4_0.3 stag3_0.4_0.3 stag1_0.5_0.3 stag2_0.5_0.3 stag3_0.5_0.3 stag1_0.6_0.2 stag2_0.6_0.2 stag3_0.6_0.2 stag1_0.7_0.2 stag2_0.7_0.2 stag3_0.7_0.2 stag1_0.8_0.1 stag2_0.8_0.1 stag3_0.8_0.1"
+# traffics="random stag1_0.1_0.2"
 traffics="random"
 
 # Run experiments.
@@ -75,4 +76,5 @@ done
 
 
 # # Plot results.
-sudo python ./plot_results.py --k $k --duration $duration --dir $out_dir --fnum $flowsPerHost
+# sudo python ./plot_results.py --k $k --duration $duration --dir $out_dir --fnum $flowsPerHost
+sudo python ./my_plot.py --k $k --duration $duration --dir $out_dir --fnum $flowsPerHost
