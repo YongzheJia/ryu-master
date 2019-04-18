@@ -29,12 +29,20 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib import hub
 
-# import network_awareness
+from ryu.controller import event
+# import BFlows
 
 import setting
 
 
 CONF = cfg.CONF
+
+
+class EventFlowentryUpdate(event.EventBase):
+    def __init__(self, flows):
+        super(EventFlowentryUpdate, self).__init__()
+        # self.dst = 'shortest_forwarding'
+        self.flows = flows
 
 
 class NetworkMonitor(app_manager.RyuApp):
@@ -62,8 +70,9 @@ class NetworkMonitor(app_manager.RyuApp):
 		self.cur_best_paths = None
 
 		# Save ele and mice flow.
-		self.ele_flow = []
-		self.mice_flow = []
+		self.ele_flows = []
+		self.old_ele_flows = []
+		self.mice_flows = []
 
 		# Start to green thread to monitor traffic and calculating
 		# flow number of links respectively.
@@ -81,9 +90,18 @@ class NetworkMonitor(app_manager.RyuApp):
 				self.port_features.setdefault(dp.id, {})
 				self._request_stats(dp)
 
+			hub.sleep(setting.MONITOR_PERIOD)
+
+			# Reroute Ele-flow
+			if self.ele_flows and self.ele_flows != self.old_ele_flows:
+				self.send_event('shortest_forwarding', EventFlowentryUpdate(self.ele_flows), MAIN_DISPATCHER)
+				print "Send event to reroute ele-flows."
+			# print "monitor ele-flows:", self.ele_flows
 			# Refresh data.
 			self.best_paths = None
-			hub.sleep(setting.MONITOR_PERIOD)
+			self.old_ele_flows = self.ele_flows
+			self.ele_flows = []
+
 			if self.stats['port']:
 				self.show_stat()
 				hub.sleep(1)
@@ -139,9 +157,11 @@ class NetworkMonitor(app_manager.RyuApp):
 			Calculate flow speed and Save it.
 			Note: table-miss, LLDP and ARP flow entries are not what we need, just filter them.
 		"""
-		# self.logger.info("flow_stats_rcv")
-		# print "flow_stats_rcv"
 		body = ev.msg.body
+
+		# Clear ele_flows to save new ele flows.
+		# self.old_ele_flows = self.ele_flows
+		# self.ele_flows = []
 
 		# We need init flow_num for all of switches.
 		# dpid = ev.msg.datapath.id
@@ -155,7 +175,7 @@ class NetworkMonitor(app_manager.RyuApp):
 			speed = float(stat.byte_count) / duration   # unit: byte/s
 			_speed = speed * 8.0 / (setting.MAX_CAPACITY * 1000)
 
-			# Ele_flow detection
+			# Ele_flows detection
 			if _speed >= 0.05:
 				ip_src = stat.match['ipv4_src']
 				ip_dst = stat.match['ipv4_dst']
@@ -163,8 +183,10 @@ class NetworkMonitor(app_manager.RyuApp):
 				L4_src_port = stat.match['tcp_src']
 				L4_dst_port = stat.match['tcp_dst']
 				flow = (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port)
-				self.ele_flow.append(flow)
-				print "ele_dtc:", flow
+				if flow not in self.ele_flows:
+					self.ele_flows.append(flow)
+					# print "add ele flow:", flow
+				# print "All ele-flow:", self.ele_flows
 
 				# Structure of stat
 				# print stat
@@ -198,12 +220,13 @@ class NetworkMonitor(app_manager.RyuApp):
 				# Calculate flow_num in core and agg switches.
 				# print "cur_best_paths:\n", self.cur_best_paths
 				if self.cur_best_paths is None:
-					flow_path = self.awareness.shortest_paths.get(src_dp).get(dst_dp)
+					flow_path = self.awareness.shortest_paths.get(src_dp).get(dst_dp)[0]
 				else:
 					flow_path = self.cur_best_paths.get(src_dp).get(dst_dp)
-				# print "Ele_flow %s(%s) to %s(%s) :" % (src_ip, src_dp, dst_ip, dst_dp), flow_path
+				# print "Ele_flows %s(%s) to %s(%s) :" % (src_ip, src_dp, dst_ip, dst_dp), flow_path
 
 				# print "try to save flow_num..."
+				# print "flow_path:", flow_path
 				link_to_port = self.awareness.link_to_port
 				# for link, port in link_to_port.items():
 				# 	(src_dpid, dst_dpid) = link
@@ -212,10 +235,27 @@ class NetworkMonitor(app_manager.RyuApp):
 					for i in xrange(0, len(flow_path)-1):
 						dpid = flow_path[i]
 						next_dpid = flow_path[i+1]
+						# print "link_to_port:", link_to_port
+						# print "(dpid, next_dpid):", (dpid, next_dpid)
+						# print "link_to_port[(dpid, next_dpid)]:", link_to_port[(dpid, next_dpid)]
 						port_no = link_to_port[(dpid, next_dpid)][0]
 						self.flow_num.setdefault(dpid, {})
 						self._save_fnum(dpid, port_no)
 						# print "Save flow_num(dpid port_no):", dpid, port_no
+		# Update flow entries
+		# for flow in self.ele_flows:
+		# 	# if flow not in self.old_ele_flows:
+		# 	if True:
+		# 		# Reroute Ele-flow
+		# 		self.send_request(EventFlowentryUpdate(flow))
+		# 		print "Send event to reroute ele-flow."
+		# for flow in self.old_ele_flows:
+		# 	if flow not in self.ele_flows:
+		# 		# Reroute Mice-flow
+		# 		self.send_request(EventFlowentryUpdate(flow))
+		# 		print "Send event to reroute mi-flow."
+
+		# self.old_ele_flows = self.ele_flows
 				# try:
 				# 	print "try to save flow_num..."
 				# 	link_to_port = self.awareness.link_to_port
@@ -237,7 +277,7 @@ class NetworkMonitor(app_manager.RyuApp):
 
 				# self._save_fnum(dpid, stat.instructions[0].actions[0].port)
 
-				# print "ele_flow from %s:" %dpid, stat.instructions[0].actions[0]
+				# print "ele_flows from %s:" %dpid, stat.instructions[0].actions[0]
 
 	@set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
 	def _port_stats_reply_handler(self, ev):

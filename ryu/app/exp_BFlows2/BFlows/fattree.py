@@ -271,9 +271,9 @@ def traffic_generation(net, topo, flows_peers):
 	for src, dest in flows_peers:
 		server = net.get(dest)
 		client = net.get(src)
-		# filename = src[1:]
-		# client.cmdPrint("iperf -c %s -t %d > %s/%s &" % (server.IP(), args.duration+1990, args.output_dir, 'client'+filename+'.txt'))
-		client.cmdPrint("iperf -c %s -t %d > /dev/null &" % (server.IP(), 1990))   # Its statistics is useless, just throw away. 1990 just means a great number.
+		filename = src[1:]
+		client.cmdPrint("iperf -c %s -t %d > %s/%s &" % (server.IP(), args.duration+1990, args.output_dir, 'client'+filename+'.txt'))
+		# client.cmdPrint("iperf -c %s -t %d > /dev/null &" % (server.IP(), 1990))   # Its statistics is useless, just throw away. 1990 just means a great number.
 		time.sleep(1)
 
 	# Wait for the traffic to become stable.
@@ -322,19 +322,29 @@ def run_experiment(pod, density, ip="127.0.0.1", port=6653, bw_c2a=10, bw_a2e=10
 	# k_paths = args.k ** 2 / 8   # We should utilize more paths.
 	k_paths = args.k ** 2 * 3 / 4
 	fanout = args.k
-	Controller_Ryu = Popen("ryu-manager --observe-links /home/jyz/ryu-master/ryu/app/exp_BFlows2/BFlows/BFlows.py \
+	Controller_Ryu = Popen("ryu-manager --observe-links \
+							/home/jyz/ryu-master/ryu/app/exp_BFlows2/BFlows/BFlows.py \
 							--k_paths=%d --weight=fnum --fanout=%d" % (k_paths, fanout), \
 							shell=True, preexec_fn=os.setsid)
 
 	# Wait until the controller has discovered network topology.
-	# time.sleep(60)
 	sleep_time = 30
 	print "Waiting %ds for td..." % sleep_time
 	time.sleep(sleep_time)
 	print "%ds end" % sleep_time
 
+	# For debug--------------------------------------------------------------------------------------------
+	# # 2.1 Start the servers.
+	# serversList = set("h00" + str(no) for no in xrange(1, 10)).union\
+	# 			  (set("h0" + str(no) for no in xrange(10, 17)))
+	# for server in serversList:
+	# 	server = net.get(server)
+	# 	server.cmdPrint("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
+	# ~For debug-------------------------------------------------------------------------------------------
+
 	# 3. Generate traffics and test the performance of the network.
 	traffic_generation(net, topo, iperf_peers.iperf_peers)
+
 
 	# start mininet CLI
 	# CLI(net)

@@ -20,7 +20,7 @@ from ryu import cfg
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, DEAD_DISPATCHER
-from ryu.controller.handler import set_ev_cls
+from ryu.controller.handler import set_ev_cls, set_ev_handler
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
@@ -59,6 +59,7 @@ class ShortestForwarding(app_manager.RyuApp):
 		self.monitor = kwargs["network_monitor"]
 		self.datapaths = {}
 		self.weight = self.WEIGHT_MODEL[CONF.weight]
+		self.cur_ele_flows = []
 
 	@set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
 	def _state_change_handler(self, ev):
@@ -97,6 +98,7 @@ class ShortestForwarding(app_manager.RyuApp):
 			self.logger.debug("IPV4 processing")
 			if len(pkt.get_protocols(ethernet.ethernet)):
 				eth_type = pkt.get_protocols(ethernet.ethernet)[0].ethertype
+				# print eth_type
 
 				# Forwarding elephant/mice flow.
 				if isinstance(tcp_pkt, tcp.tcp):
@@ -132,6 +134,9 @@ class ShortestForwarding(app_manager.RyuApp):
 		"""
 			Build packet out object.
 		"""
+		if buffer_id is None:
+			buffer_id = datapath.ofproto.OFP_NO_BUFFER
+
 		actions = []
 		if dst_port:
 			actions.append(datapath.ofproto_parser.OFPActionOutput(dst_port))
@@ -223,7 +228,7 @@ class ShortestForwarding(app_manager.RyuApp):
 			# Flood is not good.
 			self.flood(msg)
 
-	def get_path(self, src, dst, L4_Proto, L4_src_port, L4_dst_port, weight='weight'):
+	def get_path(self, src, dst, L4_Proto=None, L4_src_port=None, L4_dst_port=None, weight='fnum'):
 		"""
 			Get shortest path from network_awareness module.
 			generator (nx.shortest_simple_paths( )) produces
@@ -235,12 +240,12 @@ class ShortestForwarding(app_manager.RyuApp):
 		flow = (src, dst, L4_Proto, L4_src_port, L4_dst_port)
 
 		# Mice flow will be forwarded by shortest path.
-		if weight == self.WEIGHT_MODEL['hop'] or flow not in self.monitor.ele_flow:
-			print "Forward flow by hop:", flow
+		if weight == self.WEIGHT_MODEL['hop']:
+			# print "Forward flow by hop:", flow
 			return shortest_paths.get(src).get(dst)[0]
 
 		elif weight == self.WEIGHT_MODEL['fnum']:
-			print "Forward ele-flow by fnum:", flow
+			# print "Forward flow by fnum:", flow
 			# Because all paths will be calculated when we call self.monitor.get_best_path_by_fnum,
 			# so we just need to call it once in a period, and then, we can get path directly.
 			# If path is existed just return it, else calculate and return it.
@@ -437,48 +442,72 @@ class ShortestForwarding(app_manager.RyuApp):
 		"""
 		datapath = msg.datapath
 		in_port = msg.match['in_port']
+		# Get the first and the last switch attached to src and dst hosts.
 		result = self.get_sw(datapath.id, in_port, ip_src, ip_dst)   # result = (src_sw, dst_sw) src_sw = (sw,port)
+		# print "result:", result
+		flow = (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port)
+		# print "flow:", flow
 		if result:
 			src_sw, dst_sw = result[0], result[1]
 			if dst_sw:
 				# Path has already been calculated, just get it.
 				if L4_Proto is None:
 					# Shortest forwarding by default.
+					# print "a pkt without L4_Proto"
 					path = self.get_path(src_sw, dst_sw, weight=self.WEIGHT_MODEL['hop'])
+					self.logger.info("[PATH]%s<-->%s: %s"
+									 % (ip_src, ip_dst, path))
+					flow_info = (eth_type, ip_src, ip_dst, in_port)
 				else:
-					# Forwarding by fnum.
-					# We need pass L4 port information to get_path for path selection.
-					path = self.get_path(src_sw, dst_sw, L4_Proto, L4_src_port, L4_dst_port, weight=self.weight)
+					# We need pass L4 port information to get_path for path selection
+					# print "a pkt with L4_Proto"
 
-				if setting.enable_Flow_Entry_L4Port:
-					pkt = packet.Packet(msg.data)
-					tcp_pkt = pkt.get_protocol(tcp.tcp)
-					udp_pkt = pkt.get_protocol(udp.udp)
-					# Get ip_proto and L4 port number.
-					ip_proto, L4_port, Flag = self.get_L4_info(tcp_pkt, udp_pkt)
-					if ip_proto and L4_port and Flag:
-						if ip_proto == 6:
-							L4_Proto = 'TCP'
-						elif ip_proto == 17:
-							L4_Proto = 'UDP'
-						else:
-							pass
-						self.logger.info("[PATH]%s<-->%s(%s Port:%d): %s" % (ip_src, ip_dst, L4_Proto, L4_port, path))
-						flow_info = (eth_type, ip_src, ip_dst, in_port, ip_proto, Flag, L4_port)
+					# Elephant flow
+					# TODO: There is just for debug.
+					# if flow in self.cur_ele_flows:
+					if True:
+						path = self.get_path(src_sw, dst_sw, L4_Proto, L4_src_port, L4_dst_port,
+											 weight=self.WEIGHT_MODEL['fnum'])
+						self.logger.info("[ELE-PATH]%s<-->%s: %s, ip proto:%s, from %s to %s."
+										 % (ip_src, ip_dst, path, L4_Proto, L4_src_port, L4_dst_port))
+						flow_info = (eth_type, ip_src, ip_dst, in_port, L4_Proto, L4_src_port, L4_dst_port)
+					# Mice flow
+					else:
+						path = self.get_path(src_sw, dst_sw, L4_Proto, L4_src_port, L4_dst_port,
+											 weight=self.WEIGHT_MODEL['hop'])
+						self.logger.info("[MI-PATH]%s<-->%s: %s, ip proto:%s, from %s to %s."
+										 % (ip_src, ip_dst, path, L4_Proto, L4_src_port, L4_dst_port))
+						flow_info = (eth_type, ip_src, ip_dst, in_port, L4_Proto, L4_src_port, L4_dst_port)
 
-				else:
+				# if setting.enable_Flow_Entry_L4Port:
+				# 	pkt = packet.Packet(msg.data)
+				# 	tcp_pkt = pkt.get_protocol(tcp.tcp)
+				# 	udp_pkt = pkt.get_protocol(udp.udp)
+				# 	# Get ip_proto and L4 port number.
+				# 	ip_proto, L4_port, Flag = self.get_L4_info(tcp_pkt, udp_pkt)
+				# 	if ip_proto and L4_port and Flag:
+				# 		if ip_proto == 6:
+				# 			L4_Proto = 'TCP'
+				# 		elif ip_proto == 17:
+				# 			L4_Proto = 'UDP'
+				# 		else:
+				# 			pass
+				# 		self.logger.info("[PATH]%s<-->%s(%s Port:%d): %s" % (ip_src, ip_dst, L4_Proto, L4_port, path))
+				# 		flow_info = (eth_type, ip_src, ip_dst, in_port, ip_proto, Flag, L4_port)
+				#
+				# else:
 					# Log more information.
 					# We need install flow contained L4 port information.
-					flow = (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port)
 
-					if L4_Proto is not None:
-						self.logger.info("[PATH]%s<-->%s: %s, ip proto:%s, from %s to %s."
-										 % (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port, path))
-						flow_info = (eth_type, ip_src, ip_dst, in_port, L4_Proto, L4_src_port, L4_dst_port)
-					else:
-						self.logger.info("[PATH]%s<-->%s: %s"
-										 % (ip_src, ip_dst, path))
-						flow_info = (eth_type, ip_src, ip_dst, in_port)
+
+					# if L4_Proto is not None:
+					# 	self.logger.info("[PATH]%s<-->%s: %s, ip proto:%s, from %s to %s."
+					# 					 % (ip_src, ip_dst, path, L4_Proto, L4_src_port, L4_dst_port))
+					# 	flow_info = (eth_type, ip_src, ip_dst, in_port, L4_Proto, L4_src_port, L4_dst_port)
+					# else:
+					# 	self.logger.info("[PATH]%s<-->%s: %s"
+					# 					 % (ip_src, ip_dst, path))
+					# 	flow_info = (eth_type, ip_src, ip_dst, in_port)
 
 				# Install flow entries to datapaths along the path.
 				self.install_flow(self.datapaths, self.awareness.link_to_port,
@@ -486,4 +515,74 @@ class ShortestForwarding(app_manager.RyuApp):
 		else:
 			# Flood is not good.
 			self.flood(msg)
+
+	@set_ev_cls(network_monitor.EventFlowentryUpdate, [MAIN_DISPATCHER])
+	def update_flow_entries(self, ev):
+		"""
+			Update flow entries for ele-flows.
+			This function will be called by "network_monitor.py".
+		"""
+		# print "BFlows received EventFlowentryUpdate."
+		flows = ev.flows
+
+		# Reroute new ele flows.
+		for flow in flows:
+			if flow not in self.cur_ele_flows:
+				src_ip, dst_ip, L4_Proto, L4_src_port, L4_dst_port = flow
+				# Get src and dst switches.
+				src_location = self.awareness.get_host_location(src_ip)   # src_location = (dpid, port)
+				if src_location:
+					src_sw = src_location[0]
+				else:
+					print "src_sw not found!"
+					pass
+				dst_location = self.awareness.get_host_location(dst_ip)   # dst_location = (dpid, port)
+				if dst_location:
+					dst_sw = dst_location[0]
+				else:
+					print "dst_sw not found!"
+					pass
+
+				# print "Reroute ele-flow:", flow
+				path = self.get_path(src_sw, dst_sw, L4_Proto, L4_src_port, L4_dst_port,
+									 weight=self.WEIGHT_MODEL['fnum'])
+				self.logger.info("[RR-ELE-PATH]%s<-->%s: %s, ip proto:%s, from %s to %s."
+								 % (src_ip, dst_ip, path, L4_Proto, L4_src_port, L4_dst_port))
+				in_port = self.get_port(src_ip, self.awareness.access_table)
+				eth_type = ethernet.ether.ETH_TYPE_IP
+				flow_info = (eth_type, src_ip, dst_ip, in_port, L4_Proto, L4_src_port, L4_dst_port)
+
+				self.install_flow(self.datapaths, self.awareness.link_to_port, path, flow_info, None, None)
+
+		# Reroute new mice flows.
+		for flow in self.cur_ele_flows:
+			if flow not in flows:
+				src_ip, dst_ip, L4_Proto, L4_src_port, L4_dst_port = flow
+				# Get src and dst switches.
+				src_location = self.awareness.get_host_location(src_ip)  # src_location = (dpid, port)
+				if src_location:
+					src_sw = src_location[0]
+				else:
+					print "src_sw not found!"
+					pass
+				dst_location = self.awareness.get_host_location(dst_ip)  # dst_location = (dpid, port)
+				if dst_location:
+					dst_sw = dst_location[0]
+				else:
+					print "dst_sw not found!"
+					pass
+
+				# print "Reroute mi-flow:", flow
+				path = self.get_path(src_sw, dst_sw, L4_Proto, L4_src_port, L4_dst_port,
+									 weight=self.WEIGHT_MODEL['hop'])
+				self.logger.info("[RR-MI-PATH]%s<-->%s: %s, ip proto:%s, from %s to %s."
+								 % (src_ip, dst_ip, path, L4_Proto, L4_src_port, L4_dst_port))
+				in_port = self.get_port(src_ip, self.awareness.access_table)
+				eth_type = ethernet.ether.ETH_TYPE_IP
+				flow_info = (eth_type, src_ip, dst_ip, in_port, L4_Proto, L4_src_port, L4_dst_port)
+
+				self.install_flow(self.datapaths, self.awareness.link_to_port, path, flow_info, None, None)
+
+		self.cur_ele_flows = flows
+		# print self.cur_ele_flows
 

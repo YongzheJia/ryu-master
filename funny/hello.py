@@ -80,3 +80,14 @@ print link_to_port[(1, 3)][1]
 print "--------------------------"
 
 print 7/3
+print "--------------------------"
+flow=('10.5.0.1', '10.1.0.1', 6, 42226, 5001)
+src_ip, dst_ip, L4_Proto, L4_src_port, L4_dst_port = flow
+print src_ip, dst_ip, L4_Proto, L4_src_port, L4_dst_port
+print "--------------------------"
+
+serversList = set("h00" + str(no) for no in xrange(1, 10)).union(set("h0" + str(no) for no in xrange(10, 17)))
+# serversList
+print serversList
+for it in serversList:
+    print it
