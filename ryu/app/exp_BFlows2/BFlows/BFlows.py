@@ -54,7 +54,7 @@ class ShortestForwarding(app_manager.RyuApp):
 
 	def __init__(self, *args, **kwargs):
 		super(ShortestForwarding, self).__init__(*args, **kwargs)
-		self.name = "shortest_forwarding"
+		self.name = "bflows"
 		self.awareness = kwargs["network_awareness"]
 		self.monitor = kwargs["network_monitor"]
 		self.datapaths = {}
@@ -462,10 +462,8 @@ class ShortestForwarding(app_manager.RyuApp):
 					# We need pass L4 port information to get_path for path selection
 					# print "a pkt with L4_Proto"
 
-					# Elephant flow
-					# TODO: There is just for debug.
-					# if flow in self.cur_ele_flows:
-					if True:
+					# Elephant flow timeout
+					if flow in self.cur_ele_flows:
 						path = self.get_path(src_sw, dst_sw, L4_Proto, L4_src_port, L4_dst_port,
 											 weight=self.WEIGHT_MODEL['fnum'])
 						self.logger.info("[ELE-PATH]%s<-->%s: %s, ip proto:%s, from %s to %s."

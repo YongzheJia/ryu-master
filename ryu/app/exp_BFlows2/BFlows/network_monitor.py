@@ -90,17 +90,18 @@ class NetworkMonitor(app_manager.RyuApp):
 				self.port_features.setdefault(dp.id, {})
 				self._request_stats(dp)
 
-			hub.sleep(setting.MONITOR_PERIOD)
-
 			# Reroute Ele-flow
 			if self.ele_flows and self.ele_flows != self.old_ele_flows:
-				self.send_event('shortest_forwarding', EventFlowentryUpdate(self.ele_flows), MAIN_DISPATCHER)
-				print "Send event to reroute ele-flows."
+				self.send_event('bflows', EventFlowentryUpdate(self.ele_flows), MAIN_DISPATCHER)
+				# print "Send event to reroute ele-flows."
+			self.old_ele_flows = self.ele_flows
+			self.ele_flows = []
+
+			hub.sleep(setting.MONITOR_PERIOD)
+
 			# print "monitor ele-flows:", self.ele_flows
 			# Refresh data.
 			self.best_paths = None
-			self.old_ele_flows = self.ele_flows
-			self.ele_flows = []
 
 			if self.stats['port']:
 				self.show_stat()

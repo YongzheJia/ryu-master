@@ -1,24 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="5c94a2bd-67f4-4e79-97ee-638fe4f5848f" name="Default" comment="Try to differentiate ele- and mice flow.">
+    <list default="true" id="5c94a2bd-67f4-4e79-97ee-638fe4f5848f" name="Default" comment="Reroute ele- and mice flow. But there are some bugs.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/funny/hello.py" beforeDir="false" afterPath="$PROJECT_DIR$/funny/hello.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/BFlows.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/BFlows.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/fattree.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/fattree.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/network_monitor.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/network_monitor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/iperf_peers.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/iperf_peers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-1.realtime_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-1.realtime_throughput.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-2.average_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-2.average_throughput.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-3.accumulated_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-3.accumulated_throughput.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-4.normalized_total_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-4.normalized_total_throughput.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-5.link_utilization_ratio.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-5.link_utilization_ratio.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-6.link_bandwidth_utilization_ratio.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-6.link_bandwidth_utilization_ratio.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/BFlows/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/BFlows/bwmng.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/ECMP/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/ECMP/bwmng.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/Hedera/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/Hedera/bwmng.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/NonBlocking/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/NonBlocking/bwmng.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/PureSDN/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/PureSDN/bwmng.txt" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -88,8 +81,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/fattree.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="191">
-              <caret line="272" column="21" lean-forward="true" selection-start-line="272" selection-start-column="21" selection-end-line="272" selection-end-column="21" />
+            <state relative-caret-position="210">
+              <caret line="324" column="56" selection-start-line="324" selection-start-column="56" selection-end-line="324" selection-end-column="56" />
               <folding>
                 <element signature="n#!!doc" />
               </folding>
@@ -100,8 +93,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/BFlows.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="291">
-              <caret line="527" column="32" lean-forward="true" selection-start-line="527" selection-start-column="32" selection-end-line="527" selection-end-column="32" />
+            <state relative-caret-position="322">
+              <caret line="464" column="43" selection-start-line="464" selection-start-column="43" selection-end-line="464" selection-end-column="43" />
               <folding>
                 <element signature="n#!!doc" />
                 <element signature="e#9825#9862#0" />
@@ -115,16 +108,12 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/network_monitor.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1058">
-              <caret line="81" column="8" selection-start-line="81" selection-start-column="8" selection-end-line="81" selection-end-column="8" />
+            <state relative-caret-position="253">
+              <caret line="96" column="26" selection-start-line="96" selection-start-column="26" selection-end-line="96" selection-end-column="26" />
               <folding>
                 <element signature="n#!!doc" />
                 <element signature="e#759#790#0" expanded="true" />
-                <element signature="e#4848#4888#0" />
-                <element signature="e#5330#5349#0" />
-                <element signature="e#7177#7218#0" />
-                <element signature="e#8367#8388#0" />
-                <marker date="1555597350214" expanded="true" signature="5215:5249" ph="..." />
+                <marker date="1555666325512" expanded="true" signature="5205:5239" ph="..." />
               </folding>
             </state>
           </provider>
@@ -950,9 +939,6 @@
       <module name="ryu-master" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -1259,7 +1245,7 @@
       <workItem from="1554345317921" duration="673000" />
       <workItem from="1554346169551" duration="1222000" />
       <workItem from="1554347588215" duration="2826000" />
-      <workItem from="1554355357226" duration="39683000" />
+      <workItem from="1554355357226" duration="48521000" />
     </task>
     <task id="LOCAL-00001" summary="remove the ./git dir in some subdir.">
       <created>1552898983142</created>
@@ -1296,11 +1282,18 @@
       <option name="project" value="LOCAL" />
       <updated>1554358662990</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Reroute ele- and mice flow. But there are some bugs.">
+      <created>1555598190453</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1555598190453</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="484977000" />
+    <option name="totallyTimeSpent" value="493815000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -1316,18 +1309,18 @@
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49607843" weight="0.17929634" />
-      <window_info id="Structure" order="1" sideWeight="0.4965157" visible="true" weight="0.19959405" />
+      <window_info active="true" id="Structure" order="1" sideWeight="0.4965157" visible="true" weight="0.19959405" />
       <window_info id="Favorites" order="2" sideWeight="0.5034843" side_tool="true" weight="0.2435724" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.49864683" weight="0.3212903" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.49458727" visible="true" weight="0.39225808" />
+      <window_info anchor="bottom" id="Run" order="1" sideWeight="0.49458727" visible="true" weight="0.3483871" />
+      <window_info anchor="bottom" id="Find" order="2" sideWeight="0.49864683" weight="0.3212903" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39483872" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="Docker" order="6" show_stripe_button="false" />
       <window_info anchor="bottom" id="Terminal" order="7" weight="0.3483871" />
       <window_info anchor="bottom" id="Event Log" order="8" sideWeight="0.5054127" side_tool="true" weight="0.30708662" />
-      <window_info anchor="bottom" id="Version Control" order="9" sideWeight="0.4993234" weight="0.32258064" />
+      <window_info anchor="bottom" id="Version Control" order="9" sideWeight="0.4993234" weight="0.17032258" />
       <window_info anchor="bottom" id="Python Console" order="10" weight="0.32" />
       <window_info anchor="bottom" id="Database Changes" order="11" show_stripe_button="false" />
       <window_info active="true" anchor="bottom" id="Concurrent Activities Diagram" order="12" weight="0.32774192" />
@@ -1396,22 +1389,16 @@
     <MESSAGE value="1.将流表下发至table1中。&#10;2.只监控table1。&#10;3.取消监控汇聚及核心交换机，仅监控边缘交换机的table1，通过计算得出汇聚及核心交换机的流统计信息。&#10;画图代码完善。" />
     <MESSAGE value="1.将流表下发至table1中。2.只监控table1。3.取消监控汇聚及核心交换机，仅监控边缘交换机的table1，通过计算得出汇聚及核心交换机的流统计信息。画图代码完善。" />
     <MESSAGE value="Try to differentiate ele- and mice flow." />
-    <option name="LAST_COMMIT_MESSAGE" value="Try to differentiate ele- and mice flow." />
+    <MESSAGE value="Reroute ele- and mice flow. But there are some bugs." />
+    <option name="LAST_COMMIT_MESSAGE" value="Reroute ele- and mice flow. But there are some bugs." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/ryu_master$BFlows_Only.coverage" NAME="BFlows_Only Coverage Results" MODIFIED="1555578823534" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
-    <SUITE FILE_PATH="coverage/ryu_master$my_plot.coverage" NAME="my_plot Coverage Results" MODIFIED="1555598084588" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2" />
-    <SUITE FILE_PATH="coverage/ryu_master$BFlows_fattree.coverage" NAME="BFlows_fattree Coverage Results" MODIFIED="1555597957587" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows" />
+    <SUITE FILE_PATH="coverage/ryu_master$my_plot.coverage" NAME="my_plot Coverage Results" MODIFIED="1555666453290" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2" />
+    <SUITE FILE_PATH="coverage/ryu_master$BFlows_fattree.coverage" NAME="BFlows_fattree Coverage Results" MODIFIED="1555666325534" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows" />
     <SUITE FILE_PATH="coverage/ryu_master$hello.coverage" NAME="hello Coverage Results" MODIFIED="1555579967098" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/funny" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$USER_HOME$/.PyCharm2018.3/system/python_stubs/-1247972723/numpy/core/multiarray.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-400">
-          <caret line="57" column="7" lean-forward="true" selection-start-line="57" selection-start-column="7" selection-end-line="57" selection-end-column="7" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/plot_results.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="204">
@@ -1724,9 +1711,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/iperf_peers.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/ryu/controller/event.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="95">
@@ -1772,38 +1756,54 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/iperf_peers.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/network_monitor.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1058">
-          <caret line="81" column="8" selection-start-line="81" selection-start-column="8" selection-end-line="81" selection-end-column="8" />
+        <state>
+          <caret column="232" selection-start-column="232" selection-end-column="232" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/iperf_peers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="19">
+          <caret line="1" column="32" lean-forward="true" selection-start-line="1" selection-start-column="32" selection-end-line="1" selection-end-column="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/PureSDN/PureSDN.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-228">
           <folding>
             <element signature="n#!!doc" />
-            <element signature="e#759#790#0" expanded="true" />
-            <element signature="e#4848#4888#0" />
-            <element signature="e#5330#5349#0" />
-            <element signature="e#7177#7218#0" />
-            <element signature="e#8367#8388#0" />
-            <marker date="1555597350214" expanded="true" signature="5215:5249" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/fattree.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="191">
-          <caret line="272" column="21" lean-forward="true" selection-start-line="272" selection-start-column="21" selection-end-line="272" selection-end-column="21" />
+        <state relative-caret-position="210">
+          <caret line="324" column="56" selection-start-line="324" selection-start-column="56" selection-end-line="324" selection-end-column="56" />
           <folding>
             <element signature="n#!!doc" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/network_monitor.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="253">
+          <caret line="96" column="26" selection-start-line="96" selection-start-column="26" selection-end-line="96" selection-end-column="26" />
+          <folding>
+            <element signature="n#!!doc" />
+            <element signature="e#759#790#0" expanded="true" />
+            <marker date="1555666325512" expanded="true" signature="5205:5239" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/BFlows.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="291">
-          <caret line="527" column="32" lean-forward="true" selection-start-line="527" selection-start-column="32" selection-end-line="527" selection-end-column="32" />
+        <state relative-caret-position="322">
+          <caret line="464" column="43" selection-start-line="464" selection-start-column="43" selection-end-line="464" selection-end-column="43" />
           <folding>
             <element signature="n#!!doc" />
             <element signature="e#9825#9862#0" />

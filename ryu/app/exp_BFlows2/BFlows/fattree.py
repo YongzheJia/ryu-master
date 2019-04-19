@@ -260,10 +260,10 @@ def traffic_generation(net, topo, flows_peers):
 	# Start the servers.
 	serversList = set([peer[1] for peer in flows_peers])
 	for server in serversList:
-		# filename = server[1:]
+		filename = server[1:]
 		server = net.get(server)
-		# server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
-		server.cmdPrint("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
+		server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
+		# server.cmdPrint("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
 
 	time.sleep(1)
 
