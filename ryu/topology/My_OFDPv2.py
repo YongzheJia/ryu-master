@@ -24,6 +24,8 @@ import six
 import struct
 import time
 import json
+import psutil
+
 from ryu import cfg
 
 from ryu.topology import event
@@ -639,9 +641,15 @@ class Switches(app_manager.RyuApp):
         super(Switches, self).__init__(*args, **kwargs)
 
         # count time------------------------------------------------------
-        self.depth = 6
+        self.depth = 3
+        print "depth = %s" % self.depth
         self.s_time = time.time()
         self.one_round = 0
+        # self.CPU_load = psutil.cpu_percent(1)
+        # self.time_interval = self.s_time
+        self.CPU_time = []
+        self.init_CPU_time = time.clock()
+        self.monitor_thread = hub.spawn(self._cpu_monitor)
         # count time------------------------------------------------------
 
         self.name = 'switches'
@@ -661,6 +669,13 @@ class Switches(app_manager.RyuApp):
             self.link_event = hub.Event()
             self.threads.append(hub.spawn(self.lldp_loop))
             self.threads.append(hub.spawn(self.link_loop))
+
+    def _cpu_monitor(self):
+        while len(self.CPU_time) < 100:
+            self.CPU_time.append(time.clock() - self.init_CPU_time)
+            # print "CPU_time:", self.CPU_time
+            hub.sleep(1)
+        print "CPU_time:", self.CPU_time
 
     def close(self):
         self.is_active = False
@@ -799,6 +814,8 @@ class Switches(app_manager.RyuApp):
                         in_actions.append(dp.ofproto_parser.OFPActionOutput(ofproto.OFPP_CONTROLLER))
 
                         for port_infor in self.port_state[dp.id].values():
+                            # print "Install flow entries for switch %s, port %s. \n'OFPP_LOCAL' is %s, 'OFPP_IN_PORT' is %s, 'OFPP_CONTROLLER' is %s." \
+                            #       %(dp.id, port_infor.port_no, ofproto.OFPP_LOCAL, ofproto.OFPP_IN_PORT, ofproto.OFPP_CONTROLLER)
                             # if port_infor.name != "tap:":
                             if port_infor.port_no != in_match["in_port"]:
                                 in_actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
@@ -1041,7 +1058,7 @@ class Switches(app_manager.RyuApp):
 
         if self.one_round == 0:
             print len(self.dps)
-            print "total links",len(self.links)
+            print "total links", len(self.links)
 
         if len(self.links) == 2 ** (self.depth + 1) - 4 and self.one_round == 0:
             e_time = time.time()
@@ -1052,9 +1069,15 @@ class Switches(app_manager.RyuApp):
             # print "s_time:", self.s_time
             # print "e_time:", e_time
             print "total time:", total_time
+            # print "CPU time:", time.clock()-self.CPU_time
             print "My_OFDPv2"
 
             self.one_round = 1
+
+        # if time.time()-self.time_interval > 1:
+        #     self.time_interval = time.time()
+        #     print "CPU time:", time.clock()-self.CPU_time
+
         # count time------------------------------------------------------
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)

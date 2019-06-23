@@ -627,12 +627,18 @@ class Switches(app_manager.RyuApp):
         super(Switches, self).__init__(*args, **kwargs)
 
         # count time------------------------------------------------------
-        self.depth = 7
+        self.depth = 3
+        print "depth = %s" % self.depth
         self.s_time = time.time()
         self.one_round = 0
+        # self.CPU_load = psutil.cpu_percent(1)
+        # self.time_interval = self.s_time
+        self.CPU_time = []
+        self.init_CPU_time = time.clock()
+        self.monitor_thread = hub.spawn(self._cpu_monitor)
         # count time------------------------------------------------------
 
-        print self.__module__
+        # print self.__module__
         self.name = 'OFDPv2'
         self.dps = {}                 # datapath_id => Datapath class
         self.port_state = {}          # datapath_id => ports
@@ -650,6 +656,13 @@ class Switches(app_manager.RyuApp):
             self.link_event = hub.Event()
             self.threads.append(hub.spawn(self.lldp_loop))
             self.threads.append(hub.spawn(self.link_loop))
+
+    def _cpu_monitor(self):
+        while len(self.CPU_time) < 100:
+            self.CPU_time.append(time.clock() - self.init_CPU_time)
+            # print "CPU_time:", self.CPU_time
+            hub.sleep(1)
+        print "CPU_time:", self.CPU_time
 
     def close(self):
         self.is_active = False

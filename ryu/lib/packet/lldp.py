@@ -175,8 +175,8 @@ class lldp(packet_base.PacketBase):
 
     def serialize(self, payload, prev):
         data = bytearray()
-        for tlv in self.tlvs:
-            data += tlv.serialize()
+        # for tlv in self.tlvs:
+        #     data += tlv.serialize()
 
         return data
 
