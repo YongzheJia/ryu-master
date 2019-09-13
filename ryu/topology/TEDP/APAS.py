@@ -30,17 +30,9 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
         self.topologia = [];  # Estructura {[ID1,ID2,Puerto]}
         self.arboles = {};  # Estructura {"ID_CORE":{[ID1,ID2,Puerto]}}
         self.Time_creacion_arboles = {};
-        # self.TTL_ARBOL = 50;
         self.TTL_ARBOL = 50;
-        # self.Time_wait = 2;
         self.Time_wait = 2;
-        self.depth = 6
-        self.non_tree = True
-        self.link_num = 198
         self.ultimo_stat = time.time();
-        self.start_time = time.time();
-        self.CPU_start_time = time.clock();
-        self.log_time_info = False
         self.apas_event = hub.Event();
         self.threads = [hub.spawn(self.descubrir_topologia)]
         self.time_convergence = 0;  # contador para tiempo de convergencia
@@ -59,7 +51,7 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
         # metemos regla para que todo suba al controler
         match = parser.OFPMatch(eth_type=0x86dd)
         actions = [parser.OFPActionOutput(0, ofproto.OFPCML_NO_BUFFER)]
-        # self.add_flow(datapath, 0, match, actions, 0, 0, 0, 0)
+        self.add_flow(datapath, 0, match, actions, 0, 0, 0, 0)
         print "switch detectado: " + str(datapath.id) + " Enviamos regla generica"
         # Necesitamos conocer al menos una de las mac del switch para los paquetes ARPPATH_as_a_service
         # asi que enviamos una peticion de informacion segun se levante cada uno de los switches
@@ -74,7 +66,7 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         # comprobamos que es lo que tengo
-        # pkt = packet.Packet(msg.data)
+        pkt = packet.Packet(msg.data)
         # print "ha llegado un packet in desde: "+str(datapath.id)
         # atencion solo tratamos los arp
         # Primero Bloquear nuevos paquetes
@@ -115,19 +107,13 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
                 actions.append(parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                                       ofproto.OFPCML_NO_BUFFER))  # debemos cambiar la accion para que nos la mande al controler
                 self.add_flow(datapath, 1, match, actions, 10, 0, 0, 1)
-
-                # count packet-in
-                self.packet_in = int(self.packet_in) + 1;
-
                 if id_switch_ant != 0 and id_core != 0 and id_switch_packet_in != id_switch_ant:  # si es un nodo de nuestra red, comprobacion anti host
                     # Link Descubierto!!!
-                    # print links information
-                    if not self.log_time_info:
-                        print "Core: "+str(id_core)+" Link -> ["+str(id_switch_packet_in)+","+str(id_switch_ant)+","+str(inport)+"]"
+                    # print "Core: "+str(id_core)+" Link -> ["+str(id_switch_packet_in)+","+str(id_switch_ant)+","+str(inport)+"]"
                     # sino es el primero debemos tenerlo en cuenta para la topologia
                     self.crear_arbol(id_switch_packet_in, id_switch_ant, inport, id_core);
                     # aumentamos el contador de packet_in
-                    # self.packet_in = int(self.packet_in) + 1;
+                    self.packet_in = int(self.packet_in) + 1;
             # else:
             # print "Core->"+str(id_core)+", id_switch_ant->"+str(id_switch_ant)+", id_switch_packet_in->"+str(id_switch_packet_in)
             else:
@@ -170,24 +156,6 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
                     self.flow_mod) + "|" + str(self.packet_out)
             # print ("Elemento insertado: ")+str(array_AB)
             # print str(self.topologia)
-            # self.depth = 7
-            # self.log_time_info = False
-            if not self.non_tree:
-                if len(self.topologia) >= (2**self.depth-2)*2 and not self.log_time_info:
-                    print "-----------------------------------------------" \
-                          "Topology discovery finished.(depth=%s)" % self.depth, \
-                          "-----------------------------------------------\n" \
-                          "Discovey time:", time.time()-self.start_time, "\n" \
-                          "CPU time:", time.clock()-self.CPU_start_time
-                    self.log_time_info = True
-            else:
-                if len(self.topologia) >= self.link_num and not self.log_time_info:
-                    print "-----------------------------------------------" \
-                          "Topology discovery finished.(link=%s)" % self.link_num, \
-                          "-----------------------------------------------\n" \
-                          "Discovey time:", time.time()-self.start_time, "\n" \
-                          "CPU time:", time.clock()-self.CPU_start_time
-                    self.log_time_info = True
 
     ################################################################################################
     def crear_arbol(self, id_switch_A, id_switch_B, PORT_AB, id_switch_original):
@@ -251,11 +219,10 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
         while 1:
             # lanzamos un hilo para generar los paquetes de forma aleatoria
             if (int(time.time()) - int(self.ultimo_stat) > int(self.Time_wait)):
-                # print "Iniciamos la exploracion de topologia: " + str(id_core)
+                print "Iniciamos la exploracion de topologia: " + str(id_core)
                 self.ultimo_stat = time.time()  # modificamos para evitar exploraciones continuas
                 # comenzamos con el proceso
                 while (not self.mac_switches.has_key(id_core)):
-                    # print "In while..."
                     id_core = id_core + 1;
                     if id_core == 99:  # si llegamos al ultimo tor empezamos por el principio otra vez
                         id_core = 1;
@@ -271,8 +238,6 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
                 # posicionamos para llevar acabo la siguiente exploracion
                 id_core = id_core + 1;  # para enviar al siguiente core
                 time.sleep(self.TTL_ARBOL);  # para dejar margen
-            # else:
-            #     print "Wait..."
             time.sleep(1);
 
     ################################################################################################
@@ -302,9 +267,9 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
                 actions.append(parser.OFPActionOutput(ofproto.OFPP_IN_PORT))
                 # print "actions:\t "+str(actions)
                 # print "match:\t "+str(match)
-                # print("Se instalaron las reglas correctamente en el nodo " + str(switch_id))
+                print("Se instalaron las reglas correctamente en el nodo " + str(switch_id))
             else:
-                # print("Solo se instala envio al controller")
+                print("Solo se instala envio al controller")
                 # primero al controler
                 actions.append(parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER))
             self.add_flow(self.switches[switch_id], 1, match, actions, 10, 0, 0, 0)
@@ -330,7 +295,7 @@ class ARPPATH_as_a_service(app_manager.RyuApp):
         self.switches[id_core].send_msg(out)
         # aumentamos el contador de packet_out
         self.packet_out = int(self.packet_out) + 1;
-        # print "Enviado el mensaje correctamente"
+        print "Enviado el mensaje correctamente"
 
     def puerto_entrada_ok(self, id_switch_packet_in, inport, id_core, id_switch_ant):
         if self.puerto_confirmados.has_key(id_core):
