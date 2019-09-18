@@ -20,6 +20,8 @@
 # revised by Jyz in 2019/1/2
 
 import logging
+import random
+
 import six
 import struct
 import time
@@ -33,7 +35,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.controller.handler import MAIN_DISPATCHER, DEAD_DISPATCHER
 from ryu.exception import RyuException
 from ryu.lib import addrconv, hub
-from ryu.lib.mac import DONTCARE_STR
+from ryu.lib.mac import DONTCARE_STR, DONTCARE
 from ryu.lib.dpid import dpid_to_str, str_to_dpid
 from ryu.lib.port_no import port_no_to_str
 from ryu.lib.packet import packet, ethernet
@@ -546,7 +548,7 @@ class LLDPPacket(object):
     just send LLDP to every switch
     '''
 
-    CHASSIS_ID_PREFIX = 'dpid:'
+    CHASSIS_ID_PREFIX = ''
     CHASSIS_ID_PREFIX_LEN = len(CHASSIS_ID_PREFIX)
     CHASSIS_ID_FMT = CHASSIS_ID_PREFIX + '%s'
 
@@ -566,10 +568,19 @@ class LLDPPacket(object):
         eth_pkt = ethernet.ethernet(dst, src, ethertype)
         pkt.add_protocol(eth_pkt)
 
-        # tlv_chassis_id = lldp.ChassisID(
-        #     subtype=lldp.ChassisID.SUB_LOCALLY_ASSIGNED,
-        #     chassis_id=(LLDPPacket.CHASSIS_ID_FMT %
-        #                 dpid_to_str(dpid)).encode('ascii'))
+        # Format dpid, use chassis_id as an random mac
+        # _DPID_LEN = 6
+        # _DPID_FMT = '%0{0}x'.format(_DPID_LEN)
+        # random_mac = _DPID_FMT % dpid
+        # random_mac = int(dpid, 16)
+        random_mac = dpid.decode('hex')
+
+        tlv_chassis_id = lldp.ChassisID(
+            subtype=lldp.ChassisID.SUB_LOCALLY_ASSIGNED,
+            # chassis_id=(LLDPPacket.CHASSIS_ID_FMT %
+            #             random_mac).encode('ascii'))
+            chassis_id=random_mac)
+        # print tlv_chassis_id
         # tlv_port_id = lldp.PortID(subtype=lldp.PortID.SUB_PORT_COMPONENT,
         #                           port_id=struct.pack(
         #                               LLDPPacket.PORT_ID_STR,
@@ -577,20 +588,17 @@ class LLDPPacket(object):
         # tlv_ttl = lldp.TTL(ttl=ttl)
         tlv_end = lldp.End()
 
-        # omit tlv_chassis_id
-        # tlvs = (tlv_chassis_id, tlv_end)
-        tlvs = (tlv_end)
+        tlvs = (tlv_chassis_id, tlv_end)
+        # tlvs = (tlv_end)
 
         lldp_pkt = lldp.lldp(tlvs)
         pkt.add_protocol(lldp_pkt)
 
         pkt.serialize()
-
         # -----------------strip the tlv_port_id and tlv_ttl from lldp_pkt---------------
         pkt.data = six.binary_type(pkt.data).rstrip(b'\x00')
-        # pkt.data = pkt.data + '\x00' + '\x00'
+        pkt.data = pkt.data + '\x00' + '\x00'
         # -----------------strip the tlv_port_id and tlv_ttl from lldp_pkt---------------
-
         return pkt.data
 
     @staticmethod
@@ -612,7 +620,8 @@ class LLDPPacket(object):
         if not chassis_id.startswith(LLDPPacket.CHASSIS_ID_PREFIX):
             raise LLDPPacket.LLDPUnknownFormat(
                 msg='unknown chassis id format %s' % chassis_id)
-        src_dpid = str_to_dpid(chassis_id[LLDPPacket.CHASSIS_ID_PREFIX_LEN:])
+        # src_dpid = str_to_dpid(chassis_id[LLDPPacket.CHASSIS_ID_PREFIX_LEN:])
+        src_dpid = chassis_id[LLDPPacket.CHASSIS_ID_PREFIX_LEN:].encode('hex')
         return src_dpid
 
 
@@ -626,7 +635,8 @@ class Switches(app_manager.RyuApp):
                event.EventHostAdd]
 
     DEFAULT_TTL = 120  # unused. ignored.
-    LLDP_PACKET_LEN = len(LLDPPacket.lldp_packet(0, 0, DONTCARE_STR, 0))
+    # LLDP_PACKET_LEN = len(LLDPPacket.lldp_packet(0, 0, DONTCARE_STR, 0))
+    LLDP_PACKET_LEN = len(LLDPPacket.lldp_packet('000000000000', 0, DONTCARE_STR, 0))
 
     LLDP_SEND_GUARD = .05
     LLDP_SEND_PERIOD_PER_PORT = .9
@@ -639,8 +649,9 @@ class Switches(app_manager.RyuApp):
         super(Switches, self).__init__(*args, **kwargs)
 
         # count time------------------------------------------------------
-        self.depth = 2
+        self.depth = 7
         self.s_time = time.time()
+        self.CPU_time = time.clock()
         self.one_round = 0
         # count time------------------------------------------------------
 
@@ -661,6 +672,29 @@ class Switches(app_manager.RyuApp):
             self.link_event = hub.Event()
             self.threads.append(hub.spawn(self.lldp_loop))
             self.threads.append(hub.spawn(self.link_loop))
+            self.random_MAC = ""
+            self.old_random_MAC = ""
+            self.MAC_event = hub.Event()
+            self.threads.append(hub.spawn(self.gen_random_MAC))
+
+    def gen_random_MAC(self):
+        while True:
+            self.old_random_MAC = self.random_MAC
+            # generate random MAC address
+            Maclist = []
+            for i in range(1, 7):
+            # for i in range(1, 4):
+                RANDSTR = "".join(random.sample("0123456789abcdef", 2))
+                Maclist.append(RANDSTR)
+            self.random_MAC = "".join(Maclist)
+            print "Random MAC:", self.random_MAC
+            self.MAC_event.wait(timeout=5)
+
+    def get_random_MAC(self):
+        MAC = []
+        MAC.append(self.random_MAC)
+        MAC.append(self.old_random_MAC)
+        return MAC
 
     def close(self):
         self.is_active = False
@@ -703,16 +737,19 @@ class Switches(app_manager.RyuApp):
                     return p
 
     def _port_added(self, port):
-        lldp_data = LLDPPacket.lldp_packet(
-            port.dpid, port.port_no, port.hw_addr, self.DEFAULT_TTL)
-        self.ports.add_port(port, lldp_data)
+        # lldp_data = LLDPPacket.lldp_packet(
+        #     port.dpid, port.port_no, port.hw_addr, self.DEFAULT_TTL)
+        # self.ports.add_port(port, lldp_data)
+        self.ports.add_port(port, None)
         # LOG.debug('_port_added dpid=%s, port_no=%s, live=%s',
         # port.dpid, port.port_no, port.is_live())
 
     # construct LLDP packet for switch
     def _switch_added(self, dp):
+        # lldp_data = LLDPPacket.lldp_packet(
+        #     dp.dp.id, 0, '00:00:00:00:00:00', self.DEFAULT_TTL)
         lldp_data = LLDPPacket.lldp_packet(
-            dp.dp.id, 0, '00:00:00:00:00:00', self.DEFAULT_TTL)
+            self.random_MAC, 0, DONTCARE_STR, self.DEFAULT_TTL)
         self.switches.add_switch(dp, lldp_data)
         # LOG.debug('_port_added dpid=%s, port_no=%s, live=%s',
         # port.dpid, port.port_no, port.is_live())
@@ -799,14 +836,13 @@ class Switches(app_manager.RyuApp):
                         in_actions.append(dp.ofproto_parser.OFPActionOutput(ofproto.OFPP_CONTROLLER))
 
                         for port_infor in self.port_state[dp.id].values():
-                            # if port_infor.name != "tap:":
-                            if port_infor.port_no != in_match["in_port"]:
-                                in_actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
-                                in_actions.append(dp.ofproto_parser.OFPActionOutput(port_infor.port_no))
-                            else:
-                                in_actions.append(dp.ofproto_parser.OFPActionSetField(
-                                    eth_src=port_infor.hw_addr))
-                                in_actions.append(dp.ofproto_parser.OFPActionOutput(ofproto.OFPP_IN_PORT))
+                            if port_infor.port_no != dp.ofproto.OFPP_LOCAL:
+                                if port_infor.port_no != in_match["in_port"]:
+                                    in_actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
+                                    in_actions.append(dp.ofproto_parser.OFPActionOutput(port_infor.port_no))
+                                else:
+                                    in_actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
+                                    in_actions.append(dp.ofproto_parser.OFPActionOutput(ofproto.OFPP_IN_PORT))
 
                         # ------- limit rate of lldp-pkt use meter table ------------------
                         in_meter = parser.OFPInstructionMeter(1)
@@ -964,7 +1000,11 @@ class Switches(app_manager.RyuApp):
             if src_mac == "00:00:00:00:00:00":
                 return
 
-            # src_dpid = LLDPPacket.lldp_parse(msg.data)
+            # Verify the packet
+            random_mac = LLDPPacket.lldp_parse(msg.data)
+            if random_mac not in self.get_random_MAC():
+                print "Verification fails."
+                return
 
             # print "pkt-in:", "dpid=", msg.datapath.id, "in_port=", msg.match["in_port"], "src_dpid=", src_dpid
         except LLDPPacket.LLDPUnknownFormat as e:
@@ -1046,12 +1086,14 @@ class Switches(app_manager.RyuApp):
         if len(self.links) == 2 ** (self.depth + 1) - 4 and self.one_round == 0:
             e_time = time.time()
             total_time = e_time-self.s_time
+            CPU_time = time.clock()-self.CPU_time
 
             print "total switches:", len(self.dps)
             print "total links:", len(self.links)
             # print "s_time:", self.s_time
             # print "e_time:", e_time
             print "total time:", total_time
+            print "CPU time:", CPU_time
             print "My_OFDPv2"
 
             self.one_round = 1
@@ -1131,18 +1173,23 @@ class Switches(app_manager.RyuApp):
             dp.send_packet_out(actions=actions, data=switch_data.lldp_data)
         elif dp.ofproto.OFP_VERSION >= ofproto_v1_2.OFP_VERSION:
             for port_infor in self.port_state[dp.id].values():
-                if port_infor.name != "tap:":
-
+                if port_infor.port_no != dp.ofproto.OFPP_LOCAL:
                     # mc: only send LLDP_pkt to root nodes
                     actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
                     # actions.append(dp.ofproto_parser.OFPActionSetField(eth_src="00:00:00:00:00:00"))
                     actions.append(dp.ofproto_parser.OFPActionOutput(port_infor.port_no))
                 # actions = [dp.ofproto_parser.OFPActionOutput(self.port_state[dp].port_no)]
 
+            lldp_data = LLDPPacket.lldp_packet(
+                self.random_MAC, 0, DONTCARE_STR, self.DEFAULT_TTL)
             out = dp.ofproto_parser.OFPPacketOut(
                 datapath=dp, in_port=dp.ofproto.OFPP_CONTROLLER,
                 buffer_id=dp.ofproto.OFP_NO_BUFFER, actions=actions,
-                data=switch_data.lldp_data)
+                data=lldp_data)
+            # out = dp.ofproto_parser.OFPPacketOut(
+            #     datapath=dp, in_port=dp.ofproto.OFPP_CONTROLLER,
+            #     buffer_id=dp.ofproto.OFP_NO_BUFFER, actions=actions,
+            #     data=switch_data.lldp_data)
             dp.send_msg(out)
         else:
             LOG.error('cannot send lldp packet. unsupported version. %x',
