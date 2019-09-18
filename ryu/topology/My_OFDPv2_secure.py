@@ -639,7 +639,7 @@ class Switches(app_manager.RyuApp):
         super(Switches, self).__init__(*args, **kwargs)
 
         # count time------------------------------------------------------
-        self.depth = 2
+        self.depth = 6
         self.s_time = time.time()
         self.one_round = 0
         # count time------------------------------------------------------
