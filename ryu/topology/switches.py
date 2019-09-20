@@ -649,7 +649,7 @@ class Switches(app_manager.RyuApp):
         super(Switches, self).__init__(*args, **kwargs)
 
         # count time------------------------------------------------------
-        self.depth = 7
+        self.depth = 2
         self.s_time = time.time()
         self.CPU_time = time.clock()
         self.one_round = 0
@@ -676,18 +676,101 @@ class Switches(app_manager.RyuApp):
             self.old_random_MAC = ""
             self.MAC_event = hub.Event()
             self.threads.append(hub.spawn(self.gen_random_MAC))
+            self.blocked_ports = {}  # datapath_id => ports
+            self.inter_domain_ports = []  # PortData
 
     def gen_random_MAC(self):
         while True:
             self.old_random_MAC = self.random_MAC
+
             # generate random MAC address
             Maclist = []
             for i in range(1, 7):
-            # for i in range(1, 4):
                 RANDSTR = "".join(random.sample("0123456789abcdef", 2))
                 Maclist.append(RANDSTR)
             self.random_MAC = "".join(Maclist)
             print "Random MAC:", self.random_MAC
+
+            if self.old_random_MAC is not None:
+                # Do not send probe frame to non-inter-connected links
+                for dpid in self.port_state.keys():
+                    if dpid not in self.blocked_ports.keys():
+                        self.blocked_ports.setdefault(dpid, [])
+                    block_ports =[]
+                    for port in self.port_state[dpid].values():
+                        block_port = True
+                        if port is None or port in self.blocked_ports[dpid]:
+                            continue
+                        for link in self.links:
+                            temp_port = self._get_port(dpid, port.port_no)
+                            if temp_port is None:
+                                # Ignore LOCAL port
+                                block_port = False
+                                continue
+                            if temp_port in self.inter_domain_ports:
+                                # Ignore port of inter-domain link
+                                block_port = False
+                                continue
+                            # print "type(temp_port), type(link.dst)", type(temp_port), type(link.dst)
+                            if (temp_port is None) or temp_port == link.src or temp_port == link.dst:
+                                # Ignore port of intra-domain link
+                                block_port = False
+                                continue
+
+                        # Found a port need to be blocked
+                        if block_port:
+                            block_ports.append(port)
+                            if dpid in self.blocked_ports.keys():
+                                self.blocked_ports[dpid].append(port)
+                            else:
+                                self.blocked_ports.setdefault(dpid, [port])
+                            print "Add a block port:%s-%s" % (dpid, port.port_no)
+                            # print port
+
+                    if len(block_ports) < 1:
+                        continue
+
+                    # Mod flow entry to block probe frames
+                    dp = self.dps[dpid]
+                    ofproto = dp.ofproto
+                    ofproto_parser = dp.ofproto_parser
+
+                    for port_infor in self.port_state[dp.id].values():
+                        if port_infor.port_no == dp.ofproto.OFPP_LOCAL:
+                            continue
+                        in_match = ofproto_parser.OFPMatch(
+                            eth_type=ETH_TYPE_LLDP,
+                            eth_dst=lldp.LLDP_MAC_NEAREST_BRIDGE,
+                            in_port=port_infor.port_no)
+                        in_actions = []
+                        in_actions.append(dp.ofproto_parser.OFPActionOutput(ofproto.OFPP_CONTROLLER))
+
+                        for port_infor in self.port_state[dp.id].values():
+                            # print "type(port_infor), type(block_ports[0])", type(port_infor), type(block_ports[0])
+
+                            if port_infor in block_ports:
+                                continue
+                            if port_infor.port_no != dp.ofproto.OFPP_LOCAL:
+                                if port_infor.port_no != in_match["in_port"]:
+                                    in_actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
+                                    in_actions.append(dp.ofproto_parser.OFPActionOutput(port_infor.port_no))
+                                else:
+                                    in_actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
+                                    in_actions.append(dp.ofproto_parser.OFPActionOutput(ofproto.OFPP_IN_PORT))
+
+                        # ------- limit rate of lldp-pkt use meter table ------------------
+                        in_meter = ofproto_parser.OFPInstructionMeter(1)
+                        # in_actions.append(in_meter)
+                        in_inst = [ofproto_parser.OFPInstructionActions(
+                            ofproto.OFPIT_APPLY_ACTIONS, in_actions), in_meter]
+                        # ------- limit rate of lldp-pkt use meter table ------------------
+
+                        in_mod = ofproto_parser.OFPFlowMod(datapath=dp, match=in_match,
+                                                   idle_timeout=0, hard_timeout=0,
+                                                   instructions=in_inst,
+                                                   priority=0xFFFF)
+                        dp.send_msg(in_mod)
+
             self.MAC_event.wait(timeout=5)
 
     def get_random_MAC(self):
@@ -826,6 +909,9 @@ class Switches(app_manager.RyuApp):
                     parser = ofproto_parser
 
                     for port_infor in self.port_state[dp.id].values():
+                        if port_infor.port_no == dp.ofproto.OFPP_LOCAL:
+                            # print "LOCAL1"
+                            continue
 
                         in_match = ofproto_parser.OFPMatch(
                             eth_type=ETH_TYPE_LLDP,
@@ -843,7 +929,8 @@ class Switches(app_manager.RyuApp):
                                 else:
                                     in_actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
                                     in_actions.append(dp.ofproto_parser.OFPActionOutput(ofproto.OFPP_IN_PORT))
-
+                            # else:
+                            #     print "LOCAL2"
                         # ------- limit rate of lldp-pkt use meter table ------------------
                         in_meter = parser.OFPInstructionMeter(1)
                         # in_actions.append(in_meter)
@@ -998,13 +1085,16 @@ class Switches(app_manager.RyuApp):
 
             # mc: ignore LLDP pkt with mac == 0
             if src_mac == "00:00:00:00:00:00":
+                print "Ignore LLDP pkt with src_mac == 0."
                 return
 
             # Verify the packet
             random_mac = LLDPPacket.lldp_parse(msg.data)
             if random_mac not in self.get_random_MAC():
-                print "Verification fails."
-                return
+                print "Local verification fails."
+                # Just for the single domain scenario,
+                # the packet verification need to be placed in c.py in mulit-domain scenario.
+                # return
 
             # print "pkt-in:", "dpid=", msg.datapath.id, "in_port=", msg.match["in_port"], "src_dpid=", src_dpid
         except LLDPPacket.LLDPUnknownFormat as e:
@@ -1021,6 +1111,19 @@ class Switches(app_manager.RyuApp):
                     src_dpid = s_dpid
                     src_dpid_assignment = True
         if not src_dpid_assignment:
+            # inter-domain links
+            dpid = msg.datapath.id
+            port_no = msg.match['in_port']
+            inter_domain_port = self._get_port(dpid, port_no)
+            if inter_domain_port not in self.inter_domain_ports:
+                self.inter_domain_ports.append(inter_domain_port)
+                print "Add a inter_domain_port:", inter_domain_port
+            # Delete the port in block_ports if exist
+            if dpid in self.blocked_ports.keys():
+                for block_port in self.blocked_ports[dpid]:
+                    if port_no == block_port.port_no:
+                        self.blocked_ports[dpid].pop(block_port)
+                        print "Delete port from blocked_ports:", block_port
             return
 
         # for port in self.port_state[src_dpid].values():
