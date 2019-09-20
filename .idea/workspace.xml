@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="5c94a2bd-67f4-4e79-97ee-638fe4f5848f" name="Default" comment="After Topology Discovery experiments, i couldn't run BFlows module correctly. So, I decide to rollback to previous version.">
-      <change afterPath="$PROJECT_DIR$/ryu/topology/Fake LLDP.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/iperf_peers.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/iperf_peers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-1.realtime_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-1.realtime_throughput.png" afterDir="false" />
@@ -16,7 +15,7 @@
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/Hedera/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/Hedera/bwmng.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/NonBlocking/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/NonBlocking/bwmng.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/PureSDN/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/PureSDN/bwmng.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/topology/My_OFDPv2_secure.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/topology/My_OFDPv2_secure.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ryu/topology/My_OFDPv2_secure.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/topology/LADP.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/topology/switches.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/topology/switches.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -1198,7 +1197,7 @@
       <workItem from="1561518711004" duration="3922000" />
       <workItem from="1561552682076" duration="93930000" />
       <workItem from="1568016209671" duration="52260000" />
-      <workItem from="1568381504190" duration="97054000" />
+      <workItem from="1568381504190" duration="99653000" />
     </task>
     <task id="LOCAL-00001" summary="remove the ./git dir in some subdir.">
       <created>1552898983142</created>
@@ -1284,7 +1283,14 @@
       <option name="project" value="LOCAL" />
       <updated>1568796374610</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Add scalability and security.">
+      <created>1568960193962</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1568960193963</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TodoView">
@@ -1360,7 +1366,8 @@
     <MESSAGE value="Add TEDP." />
     <MESSAGE value="Finish scalability." />
     <MESSAGE value="Finish secure version." />
-    <option name="LAST_COMMIT_MESSAGE" value="Finish secure version." />
+    <MESSAGE value="Add scalability and security." />
+    <option name="LAST_COMMIT_MESSAGE" value="Add scalability and security." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/ryu_master$tp_dc.coverage" NAME="tp_dc Coverage Results" MODIFIED="1568898426431" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
@@ -1373,12 +1380,12 @@
     <SUITE FILE_PATH="coverage/ryu_master$BFlows_fattree.coverage" NAME="BFlows_fattree Coverage Results" MODIFIED="1565775078295" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows" />
     <SUITE FILE_PATH="coverage/ryu_master$my_plot.coverage" NAME="my_plot Coverage Results" MODIFIED="1565775888939" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2" />
     <SUITE FILE_PATH="coverage/ryu_master$multi_tp_dc1.coverage" NAME="multi_tp_dc1 Coverage Results" MODIFIED="1568552072088" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
-    <SUITE FILE_PATH="coverage/ryu_master$server_c1.coverage" NAME="mulit_client2 Coverage Results" MODIFIED="1568959309971" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
+    <SUITE FILE_PATH="coverage/ryu_master$server_c1.coverage" NAME="mulit_client2 Coverage Results" MODIFIED="1568962963569" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
     <SUITE FILE_PATH="coverage/ryu_master$simple_switch_13.coverage" NAME="simple_switch_13 Coverage Results" MODIFIED="1568874999148" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
     <SUITE FILE_PATH="coverage/ryu_master$Fake_LLDP.coverage" NAME="Fake LLDP Coverage Results" MODIFIED="1568882591849" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/topology" />
-    <SUITE FILE_PATH="coverage/ryu_master$server.coverage" NAME="mulit_server Coverage Results" MODIFIED="1568899145240" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/topology/multicontroller" />
+    <SUITE FILE_PATH="coverage/ryu_master$server.coverage" NAME="mulit_server Coverage Results" MODIFIED="1568962942271" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/topology/multicontroller" />
     <SUITE FILE_PATH="coverage/ryu_master$APAS.coverage" NAME="APAS Coverage Results" MODIFIED="1568029101901" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
-    <SUITE FILE_PATH="coverage/ryu_master$server_c0.coverage" NAME="mulit_client1 Coverage Results" MODIFIED="1568959308309" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
+    <SUITE FILE_PATH="coverage/ryu_master$server_c0.coverage" NAME="mulit_client1 Coverage Results" MODIFIED="1568962949897" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
   </component>
   <component name="masterDetails">
     <states>

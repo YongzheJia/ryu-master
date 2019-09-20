@@ -1110,8 +1110,9 @@ class Switches(app_manager.RyuApp):
                     src_port_no = port.port_no
                     src_dpid = s_dpid
                     src_dpid_assignment = True
+        # ----------------------Handle inter-domain links--------------------
         if not src_dpid_assignment:
-            # inter-domain links
+
             dpid = msg.datapath.id
             port_no = msg.match['in_port']
             inter_domain_port = self._get_port(dpid, port_no)
@@ -1122,9 +1123,15 @@ class Switches(app_manager.RyuApp):
             if dpid in self.blocked_ports.keys():
                 for block_port in self.blocked_ports[dpid]:
                     if port_no == block_port.port_no:
-                        self.blocked_ports[dpid].pop(block_port)
+                        # self.blocked_ports[dpid].pop(block_port)
+                        if len(self.blocked_ports[dpid]) > 1:
+                            self.blocked_ports[dpid] = self.blocked_ports[dpid].remove(block_port)
+                        else:
+                            self.blocked_ports[dpid] = []
                         print "Delete port from blocked_ports:", block_port
+                        print "self.blocked_ports[%s]:%s" % (dpid, self.blocked_ports[dpid])
             return
+        # ----------------------Handle inter-domain links--------------------
 
         # for port in self.port_state[src_dpid].values():
         #     if port.hw_addr == src_mac:

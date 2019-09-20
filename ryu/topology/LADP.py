@@ -677,7 +677,7 @@ class Switches(app_manager.RyuApp):
             self.MAC_event = hub.Event()
             self.threads.append(hub.spawn(self.gen_random_MAC))
             self.blocked_ports = {}  # datapath_id => ports
-            self.inter_domain_ports = {}  # Port class -> PortData class
+            self.inter_domain_ports = []  # PortData
 
     def gen_random_MAC(self):
         while True:
@@ -690,9 +690,6 @@ class Switches(app_manager.RyuApp):
                 Maclist.append(RANDSTR)
             self.random_MAC = "".join(Maclist)
             print "Random MAC:", self.random_MAC
-
-            # for host in self.hosts:
-            #     print "Hosts:", host
 
             if self.old_random_MAC is not None:
                 # Do not send probe frame to non-inter-connected links
@@ -707,8 +704,9 @@ class Switches(app_manager.RyuApp):
                         for link in self.links:
                             temp_port = self._get_port(dpid, port.port_no)
                             if temp_port is None:
-                                # Block LOCAL port
-                                break
+                                # Ignore LOCAL port
+                                block_port = False
+                                continue
                             if temp_port in self.inter_domain_ports:
                                 # Ignore port of inter-domain link
                                 block_port = False
@@ -726,13 +724,11 @@ class Switches(app_manager.RyuApp):
                                 self.blocked_ports[dpid].append(port)
                             else:
                                 self.blocked_ports.setdefault(dpid, [port])
-                        # print "Add a block port:", port
+                            print "Add a block port:%s-%s" % (dpid, port.port_no)
+                            # print port
 
                     if len(block_ports) < 1:
                         continue
-                    # for p in block_ports:
-                    #     self.blocked_ports
-                    print self.blocked_ports
 
                     # Mod flow entry to block probe frames
                     dp = self.dps[dpid]
@@ -740,6 +736,8 @@ class Switches(app_manager.RyuApp):
                     ofproto_parser = dp.ofproto_parser
 
                     for port_infor in self.port_state[dp.id].values():
+                        if port_infor.port_no == dp.ofproto.OFPP_LOCAL:
+                            continue
                         in_match = ofproto_parser.OFPMatch(
                             eth_type=ETH_TYPE_LLDP,
                             eth_dst=lldp.LLDP_MAC_NEAREST_BRIDGE,
@@ -751,7 +749,6 @@ class Switches(app_manager.RyuApp):
                             # print "type(port_infor), type(block_ports[0])", type(port_infor), type(block_ports[0])
 
                             if port_infor in block_ports:
-                                print "Block port: s%s-%s" % (dpid, port_infor.port_no)
                                 continue
                             if port_infor.port_no != dp.ofproto.OFPP_LOCAL:
                                 if port_infor.port_no != in_match["in_port"]:
@@ -912,6 +909,9 @@ class Switches(app_manager.RyuApp):
                     parser = ofproto_parser
 
                     for port_infor in self.port_state[dp.id].values():
+                        if port_infor.port_no == dp.ofproto.OFPP_LOCAL:
+                            # print "LOCAL1"
+                            continue
 
                         in_match = ofproto_parser.OFPMatch(
                             eth_type=ETH_TYPE_LLDP,
@@ -929,7 +929,8 @@ class Switches(app_manager.RyuApp):
                                 else:
                                     in_actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
                                     in_actions.append(dp.ofproto_parser.OFPActionOutput(ofproto.OFPP_IN_PORT))
-
+                            # else:
+                            #     print "LOCAL2"
                         # ------- limit rate of lldp-pkt use meter table ------------------
                         in_meter = parser.OFPInstructionMeter(1)
                         # in_actions.append(in_meter)
@@ -1090,7 +1091,9 @@ class Switches(app_manager.RyuApp):
             # Verify the packet
             random_mac = LLDPPacket.lldp_parse(msg.data)
             if random_mac not in self.get_random_MAC():
-                print "Verification fails."
+                print "Local verification fails."
+                # Just for the single domain scenario,
+                # the packet verification need to be placed in c.py in mulit-domain scenario.
                 # return
 
             # print "pkt-in:", "dpid=", msg.datapath.id, "in_port=", msg.match["in_port"], "src_dpid=", src_dpid
@@ -1107,8 +1110,28 @@ class Switches(app_manager.RyuApp):
                     src_port_no = port.port_no
                     src_dpid = s_dpid
                     src_dpid_assignment = True
+        # ----------------------Handle inter-domain links--------------------
         if not src_dpid_assignment:
+
+            dpid = msg.datapath.id
+            port_no = msg.match['in_port']
+            inter_domain_port = self._get_port(dpid, port_no)
+            if inter_domain_port not in self.inter_domain_ports:
+                self.inter_domain_ports.append(inter_domain_port)
+                print "Add a inter_domain_port:", inter_domain_port
+            # Delete the port in block_ports if exist
+            if dpid in self.blocked_ports.keys():
+                for block_port in self.blocked_ports[dpid]:
+                    if port_no == block_port.port_no:
+                        # self.blocked_ports[dpid].pop(block_port)
+                        if len(self.blocked_ports[dpid]) > 1:
+                            self.blocked_ports[dpid] = self.blocked_ports[dpid].remove(block_port)
+                        else:
+                            self.blocked_ports[dpid] = []
+                        print "Delete port from blocked_ports:", block_port
+                        print "self.blocked_ports[%s]:%s" % (dpid, self.blocked_ports[dpid])
             return
+        # ----------------------Handle inter-domain links--------------------
 
         # for port in self.port_state[src_dpid].values():
         #     if port.hw_addr == src_mac:
@@ -1181,7 +1204,7 @@ class Switches(app_manager.RyuApp):
             # print "e_time:", e_time
             print "total time:", total_time
             print "CPU time:", CPU_time
-            print "My_OFDPv2"
+            print "LADP"
 
             self.one_round = 1
         # count time------------------------------------------------------
