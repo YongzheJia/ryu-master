@@ -18,6 +18,7 @@
 
 from __future__ import division
 import copy
+import math
 from operator import attrgetter
 
 from ryu import cfg
@@ -70,9 +71,18 @@ class NetworkMonitor(app_manager.RyuApp):
 		self.cur_best_paths = None
 
 		# Save ele and mice flow.
-		self.ele_flows = []
-		self.old_ele_flows = []
+		self.CEAED_ele_flows = []
+		self.CEAED_ele_flows_each_period = {}
+		self.Hedera_ele_flows = []
+		self.Hedera_ele_flows_each_period = {}
+		self.BFlows_ele_flows = []
+		self.Two_ele_flows = []
+		self.old_CEAED_ele_flows = []
 		self.mice_flows = []
+		self.flow_size_per_period = {}
+		self.true_total_flow_size = {}
+		self.network_traffic = 0
+		self.monitor_period = 0
 
 		# Start to green thread to monitor traffic and calculating
 		# flow number of links respectively.
@@ -90,12 +100,19 @@ class NetworkMonitor(app_manager.RyuApp):
 				self.port_features.setdefault(dp.id, {})
 				self._request_stats(dp)
 
+			self.monitor_period = (self.monitor_period+1) % 60
+			if self.monitor_period in [5, 10, 15, 20, 25, 30, 35, 40]:
+				self.calculate_FPR_and_FNR()
+
+			# hub.sleep(setting.MONITOR_PERIOD)
+
 			# Reroute Ele-flow
-			if self.ele_flows and self.ele_flows != self.old_ele_flows:
-				self.send_event('bflows', EventFlowentryUpdate(self.ele_flows), MAIN_DISPATCHER)
+			if self.CEAED_ele_flows and self.CEAED_ele_flows != self.old_CEAED_ele_flows:
+				self.send_event('bflows', EventFlowentryUpdate(self.CEAED_ele_flows), MAIN_DISPATCHER)
 				# print "Send event to reroute ele-flows."
-			self.old_ele_flows = self.ele_flows
-			self.ele_flows = []
+				self.old_CEAED_ele_flows = self.CEAED_ele_flows
+			# self.old_ele_flows = self.ele_flows
+			# self.ele_flows = []
 
 			hub.sleep(setting.MONITOR_PERIOD)
 
@@ -106,6 +123,99 @@ class NetworkMonitor(app_manager.RyuApp):
 			if self.stats['port']:
 				self.show_stat()
 				hub.sleep(1)
+
+	def calculate_FPR_and_FNR(self):
+
+		total_flow_num = len(self.true_total_flow_size)
+		if total_flow_num == 0:
+			return
+		self.network_traffic = 0
+		for flow in self.true_total_flow_size.keys():
+			self.network_traffic = self.network_traffic + self.true_total_flow_size[flow]
+		# Real elephant flow is defined as the flow that carries traffic exceed
+		# 0.1% of the total network traffic.
+		Th_true = 0.0001*self.network_traffic
+		print "Th_true: ", Th_true/1000000  # MB
+
+		# CEAED
+		CEAED_FPR_each_period = []
+		CEAED_FNR_each_period = []
+
+		for i in self.CEAED_ele_flows_each_period.keys():
+			CEAED_FPR = 0
+			CEAED_FNR = 0
+			CEAED_FP = 0
+			CEAED_FN = 0
+			for flow in self.CEAED_ele_flows_each_period[i]:
+				if self.true_total_flow_size[flow] < Th_true:
+					CEAED_FP += 1
+			CEAED_FPR = CEAED_FP / total_flow_num
+			CEAED_FPR_each_period.append(CEAED_FPR)
+
+			for flow in self.true_total_flow_size.keys():
+				if self.true_total_flow_size[flow] >= Th_true and flow not in self.CEAED_ele_flows_each_period[i]:
+					CEAED_FN += 1
+			CEAED_FNR = CEAED_FN / total_flow_num
+			CEAED_FNR_each_period.append(CEAED_FNR)
+
+		total_periods = len(CEAED_FPR_each_period)
+		total_FPR = 0
+		total_FNR =0
+		Avg_CEAED_FPR = 0
+		Avg_CEAED_FNR = 0
+		for i in range(0, total_periods):
+			total_FPR = total_FPR + CEAED_FPR_each_period[i]
+			total_FNR = total_FNR + CEAED_FNR_each_period[i]
+		Avg_CEAED_FPR = total_FPR / total_periods
+		Avg_CEAED_FNR = total_FNR / total_periods
+		print "CEAED: FPR=%s, FNR=%s." % (Avg_CEAED_FPR, Avg_CEAED_FNR)
+		print "All FPR and FNR: ", CEAED_FPR_each_period, CEAED_FNR_each_period
+
+		# Hedera
+		Hedera_FPR_each_period = []
+		Hedera_FNR_each_period = []
+
+		for i in self.Hedera_ele_flows_each_period.keys():
+			Hedera_FPR = 0
+			Hedera_FNR = 0
+			Hedera_FP = 0
+			Hedera_FN = 0
+			for flow in self.Hedera_ele_flows_each_period[i]:
+				if self.true_total_flow_size[flow] < Th_true:
+					Hedera_FP += 1
+			Hedera_FPR = Hedera_FP / total_flow_num
+			Hedera_FPR_each_period.append(Hedera_FPR)
+
+			for flow in self.true_total_flow_size.keys():
+				if self.true_total_flow_size[flow] >= Th_true and flow not in self.Hedera_ele_flows_each_period[i]:
+					Hedera_FN += 1
+			Hedera_FNR = Hedera_FN / total_flow_num
+			Hedera_FNR_each_period.append(Hedera_FNR)
+
+		total_periods = len(Hedera_FPR_each_period)
+		total_FPR = 0
+		total_FNR =0
+		Avg_Hedera_FPR = 0
+		Avg_Hedera_FNR = 0
+		for i in range(0, total_periods):
+			total_FPR = total_FPR + Hedera_FPR_each_period[i]
+			total_FNR = total_FNR + Hedera_FNR_each_period[i]
+		Avg_Hedera_FPR = total_FPR / total_periods
+		Avg_Hedera_FNR = total_FNR / total_periods
+		print "Hedera: FPR=%s, FNR=%s." % (Avg_Hedera_FPR, Avg_Hedera_FNR)
+		print "All FPR and FNR: ", Hedera_FPR_each_period, Hedera_FNR_each_period
+
+		# for flow in self.CEAED_ele_flows:
+		# 	if self.total_flow_size[flow] < Th_true:
+		# 		CEAED_FP += 1
+		# CEAED_FPR = CEAED_FP / total_flow_num
+		#
+		# for flow in self.total_flow_size.keys():
+		# 	if self.total_flow_size[flow] >= Th_true and flow not in self.CEAED_ele_flows:
+		# 		CEAED_FN += 1
+		# CEAED_FNR = CEAED_FN / total_flow_num
+		#
+		# print "CEAED: FPR=%s, FNR=%s." % (CEAED_FPR, CEAED_FNR)
 
 	def _save_fnum_graph(self):
 		"""
@@ -169,6 +279,24 @@ class NetworkMonitor(app_manager.RyuApp):
 		# self.flow_num.setdefault(dpid, {})
 
 		for stat in sorted([flow for flow in body if (flow.priority not in [0, 65535])]):
+
+			# Record each flow.
+			ip_src = stat.match['ipv4_src']
+			ip_dst = stat.match['ipv4_dst']
+			L4_Proto = stat.match['ip_proto']
+			L4_src_port = stat.match['tcp_src']
+			L4_dst_port = stat.match['tcp_dst']
+			flow = (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port)
+			# if flow not in self.all_flows.keys():
+			self.true_total_flow_size[flow] = stat.byte_count
+
+			# CEAED records the flow size in current period.
+			if self.flow_size_per_period.has_key(flow):
+				self.flow_size_per_period[flow] = stat.byte_count - \
+												  self.flow_size_per_period[flow]
+			else:
+				self.flow_size_per_period[flow] = stat.byte_count
+
 			# Get flow's speed and record it.
 			duration = self._get_time(stat.duration_sec, stat.duration_nsec)
 			if duration < 0.1:
@@ -177,16 +305,37 @@ class NetworkMonitor(app_manager.RyuApp):
 			_speed = speed * 8.0 / (setting.MAX_CAPACITY * 1000)
 
 			# Ele_flows detection
-			if _speed >= 0.05:
-				ip_src = stat.match['ipv4_src']
-				ip_dst = stat.match['ipv4_dst']
-				L4_Proto = stat.match['ip_proto']
-				L4_src_port = stat.match['tcp_src']
-				L4_dst_port = stat.match['tcp_dst']
-				flow = (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port)
-				if flow not in self.ele_flows:
-					self.ele_flows.append(flow)
-					# print "add ele flow:", flow
+			is_ele = False
+
+			# Hedera
+			self.Hedera_ele_flows = []
+			if stat.byte_count > 1000000:  # 1MB
+				self.Hedera_ele_flows.append(flow)
+			# self.Hedera_ele_flows_each_period[self.monitor_period] = self.Hedera_ele_flows
+
+			# BFlows
+			BFlows_is_ele = False
+			if _speed >= 0.1:
+				BFlows_is_ele = True
+
+			# Two-stage
+			Two_is_ele = False
+			if stat.byte_count > 1000000 and duration > 1:  # 1MB
+				Two_is_ele = True
+
+			# is_ele = Hedera_is_ele
+			# if _speed >= 0.1:
+			if is_ele:
+				# ip_src = stat.match['ipv4_src']
+				# ip_dst = stat.match['ipv4_dst']
+				# L4_Proto = stat.match['ip_proto']
+				# L4_src_port = stat.match['tcp_src']
+				# L4_dst_port = stat.match['tcp_dst']
+				# flow = (ip_src, ip_dst, L4_Proto, L4_src_port, L4_dst_port)
+				# if flow not in self.ele_flows:
+				if flow not in self.CEAED_ele_flows:
+					self.CEAED_ele_flows.append(flow)
+					print "Add a ele-flow:", flow
 				# print "All ele-flow:", self.ele_flows
 
 				# Structure of stat
@@ -203,46 +352,133 @@ class NetworkMonitor(app_manager.RyuApp):
 				# in core and agg switches.
 
 				# self._save_fnum(dpid, stat.instructions[0].actions[0].port)
-				src_ip = stat.match['ipv4_src']
-				dst_ip = stat.match['ipv4_dst']
 
-				access_table = self.awareness.access_table
-				# src_dp = sw[0] for sw in access_table.keys() if access_table[sw][0] == src_ip
-				for sw in access_table.keys():
-					if access_table[sw][0] == src_ip:
-						src_dp = sw[0]
-						# print "src_ip,src_dp:", src_ip, src_dp
+		# CEAED
+		flow_num = len(self.flow_size_per_period)
+		if flow_num <= 1:
+			return
+		# flow_size = sorted(self.flow_size_per_period.items(), key=lambda x: x[1], reverse=True)
+		flow_size = sorted(self.true_total_flow_size.items(), key=lambda x: x[1], reverse=True)
+		# print "flow_size_per_period:", flow_size
 
-				for sw in access_table.keys():
-					if access_table[sw][0] == dst_ip:
-						dst_dp = sw[0]
-						# print "dst_ip,dst_dp:", dst_ip, dst_dp
+		ele_persent = 0.1
+		mice_persent = 1 - ele_persent
 
-				# Calculate flow_num in core and agg switches.
-				# print "cur_best_paths:\n", self.cur_best_paths
-				if self.cur_best_paths is None:
-					flow_path = self.awareness.shortest_paths.get(src_dp).get(dst_dp)[0]
-				else:
-					flow_path = self.cur_best_paths.get(src_dp).get(dst_dp)
-				# print "Ele_flows %s(%s) to %s(%s) :" % (src_ip, src_dp, dst_ip, dst_dp), flow_path
+		ele_num = int(flow_num * ele_persent)
+		# Not divide by 0.
+		if ele_num is 0:
+			ele_num = 1
+		mice_num = flow_num - ele_num
 
-				# print "try to save flow_num..."
-				# print "flow_path:", flow_path
-				link_to_port = self.awareness.link_to_port
-				# for link, port in link_to_port.items():
-				# 	(src_dpid, dst_dpid) = link
-				# 	(src_port, dst_port) = port
-				if len(flow_path) > 1:
-					for i in xrange(0, len(flow_path)-1):
-						dpid = flow_path[i]
-						next_dpid = flow_path[i+1]
-						# print "link_to_port:", link_to_port
-						# print "(dpid, next_dpid):", (dpid, next_dpid)
-						# print "link_to_port[(dpid, next_dpid)]:", link_to_port[(dpid, next_dpid)]
-						port_no = link_to_port[(dpid, next_dpid)][0]
-						self.flow_num.setdefault(dpid, {})
-						self._save_fnum(dpid, port_no)
-						# print "Save flow_num(dpid port_no):", dpid, port_no
+		# Calculate dynamic threshold.
+		total_ele_size = 0
+		for i in range(0, ele_num):
+			total_ele_size = total_ele_size + flow_size[i][1] / 1000000  # MB
+		mu_ele = total_ele_size / ele_num
+		for i in range(0, ele_num):
+			temp = (flow_size[i][1]/1000000 - mu_ele) * (flow_size[i][1]/1000000 - mu_ele)  # MB
+		sigma_ele = temp / ele_num
+
+		total_mice_size = 0
+		for i in range(ele_num+1, flow_num):
+			total_mice_size = total_mice_size + flow_size[i][1] / 1000000  # MB
+		mu_mice = total_mice_size / mice_num
+		for i in range(ele_num+1, flow_num):
+			temp = (flow_size[i][1]/1000000 - mu_mice) * (flow_size[i][1]/1000000 - mu_mice)  # MB
+		sigma_mice = temp / mice_num
+
+		Th = ((mu_ele*mu_ele-mu_mice*mu_mice) +
+			  2*sigma_ele*sigma_ele*math.log(ele_persent/mice_persent))\
+			 / 2*(mu_ele-mu_mice)  # MB
+
+		if Th < 0.01:
+			Th = 0.01  # 10KB
+		print "Th=", Th  # MB
+
+		self.CEAED_ele_flows = []
+		for flow in self.flow_size_per_period.keys():
+			# if self.flow_size_per_period[flow]/1000000 >= Th:
+			if self.flow_size_per_period[flow]/1000000 >= Th/self.monitor_period:
+				self.CEAED_ele_flows.append(flow)
+		# for flow in self.true_total_flow_size.keys():
+		# 	if self.true_total_flow_size[flow]/1000000 >= Th:
+		# 		self.CEAED_ele_flows.append(flow)
+				# print "CEAED adds a ele-flow:", flow
+		self.CEAED_ele_flows_each_period[self.monitor_period] = self.CEAED_ele_flows
+
+		# Hedera
+		self.Hedera_ele_flows_each_period[self.monitor_period] = self.Hedera_ele_flows
+
+		# # Calculate the FPR and the FNR of CEAED.
+		# total_flow_num = len(self.total_flow_size)
+		# self.network_traffic = 0
+		# CEAED_FP = 0
+		# CEAED_FN = 0
+		# CEAED_FPR = 0
+		# CEAED_FNR = 0
+		#
+		# for flow in self.total_flow_size.keys():
+		# 	self.network_traffic = self.network_traffic + self.total_flow_size[flow]
+		#
+		# # Real elephant flow is defined as the flow that carries traffic exceed
+		# # 0.1% of the total network traffic.
+		# Th_true = 0.001*self.network_traffic
+		#
+		# for flow in self.ele_flows:
+		# 	if self.total_flow_size[flow] < Th_true:
+		# 		CEAED_FP += 1
+		# CEAED_FPR = CEAED_FP / total_flow_num
+		#
+		# for flow in self.total_flow_size.keys():
+		# 	if self.total_flow_size[flow] >= Th_true and flow not in self.ele_flows:
+		# 		CEAED_FN += 1
+		# CEAED_FNR = CEAED_FN / total_flow_num
+		#
+		# print "FPR=%s, FNR=%s." % (CEAED_FPR, CEAED_FNR)
+
+		for flow in self.CEAED_ele_flows:
+				# src_ip = stat.match['ipv4_src']
+				# dst_ip = stat.match['ipv4_dst']
+
+			src_ip = flow[0]
+			dst_ip = flow[1]
+			access_table = self.awareness.access_table
+			# src_dp = sw[0] for sw in access_table.keys() if access_table[sw][0] == src_ip
+			for sw in access_table.keys():
+				if access_table[sw][0] == src_ip:
+					src_dp = sw[0]
+					# print "src_ip,src_dp:", src_ip, src_dp
+
+			for sw in access_table.keys():
+				if access_table[sw][0] == dst_ip:
+					dst_dp = sw[0]
+					# print "dst_ip,dst_dp:", dst_ip, dst_dp
+
+			# Calculate flow_num in core and agg switches.
+			# print "cur_best_paths:\n", self.cur_best_paths
+			if self.cur_best_paths is None:
+				flow_path = self.awareness.shortest_paths.get(src_dp).get(dst_dp)[0]
+			else:
+				flow_path = self.cur_best_paths.get(src_dp).get(dst_dp)
+			# print "Ele_flows %s(%s) to %s(%s) :" % (src_ip, src_dp, dst_ip, dst_dp), flow_path
+
+			# print "try to save flow_num..."
+			# print "flow_path:", flow_path
+			link_to_port = self.awareness.link_to_port
+			# for link, port in link_to_port.items():
+			# 	(src_dpid, dst_dpid) = link
+			# 	(src_port, dst_port) = port
+			if len(flow_path) > 1:
+				for i in xrange(0, len(flow_path)-1):
+					dpid = flow_path[i]
+					next_dpid = flow_path[i+1]
+					# print "link_to_port:", link_to_port
+					# print "(dpid, next_dpid):", (dpid, next_dpid)
+					# print "link_to_port[(dpid, next_dpid)]:", link_to_port[(dpid, next_dpid)]
+					port_no = link_to_port[(dpid, next_dpid)][0]
+					self.flow_num.setdefault(dpid, {})
+					self._save_fnum(dpid, port_no)
+					# print "Save flow_num(dpid port_no):", dpid, port_no
 		# Update flow entries
 		# for flow in self.ele_flows:
 		# 	# if flow not in self.old_ele_flows:

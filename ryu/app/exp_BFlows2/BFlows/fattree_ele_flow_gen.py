@@ -331,7 +331,7 @@ def run_experiment(pod, density, ip="127.0.0.1", port=6653, bw_c2a=10, bw_a2e=10
 	# Wait until the controller has discovered network topology.
 	# my code---------------------------------------------------------------------------------
 	# time.sleep(60)
-	sleep_time = 30
+	sleep_time = 60
 	print "Waitting %ds for td..." % sleep_time
 	time.sleep(sleep_time)
 	print "%ds end" % sleep_time
