@@ -316,7 +316,7 @@ def nomal_generation(net, topo, flows_peers):
 		client = net.get(src)
 		filename = src[1:]
 
-		ele_mu = 10
+		ele_mu = 100
 		ele_sigma = 4
 		ele_num = 10
 
@@ -328,7 +328,7 @@ def nomal_generation(net, topo, flows_peers):
 			client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
 							(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
 
-		mice_mu = 0.1
+		mice_mu = 1
 		mice_sigma = 0.1
 		mice_num = 90
 
@@ -383,18 +383,20 @@ def per_second_nomal_generation(net, topo, flows_peers):
 			filename = src[1:]
 
 			ele_mu = 10
-			ele_sigma = 4
+			ele_sigma = 1
 			ele_num = 1
 			ele_size = np.random.normal(ele_mu, ele_sigma, ele_num)
 			# print "ele_size:", ele_size
 			for size in ele_size:
 				if size <= 1:
-					size = 1
+					size = 10
 				client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
 								(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
 
-			mice_mu = 0.1
-			mice_sigma = 0.1
+			# mice_mu = 0.01  # best  10-20%
+			# mice_sigma = 0.03
+			mice_mu = 0.05
+			mice_sigma = 0.01
 			mice_num = 9
 			mice_size = np.random.normal(mice_mu, mice_sigma, mice_num)
 			# print "mice_size:", mice_size
@@ -596,8 +598,8 @@ def run_experiment(pod, density, ip="127.0.0.1", port=6653, bw_c2a=10, bw_a2e=10
 
 	# 3. Generate traffics and test the performance of the network.
 	# traffic_generation(net, topo, iperf_peers.iperf_peers)
-	nomal_generation(net, topo, iperf_peers.iperf_peers)
-	# per_second_nomal_generation(net, topo, iperf_peers.iperf_peers)
+	# nomal_generation(net, topo, iperf_peers.iperf_peers)
+	per_second_nomal_generation(net, topo, iperf_peers.iperf_peers)
 	# uniform_generation(net, topo, iperf_peers.iperf_peers)
 	# per_second_uniform_generation(net, topo, iperf_peers.iperf_peers)
 

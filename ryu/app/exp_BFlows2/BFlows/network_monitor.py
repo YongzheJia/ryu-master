@@ -88,6 +88,7 @@ class NetworkMonitor(app_manager.RyuApp):
 		self.true_total_flow_size = {}
 		self.network_traffic = 0
 		self.monitor_period = 0
+		self.CEAED_FPR_and_FNR = {}
 
 		# Start to green thread to monitor traffic and calculating
 		# flow number of links respectively.
@@ -188,10 +189,18 @@ class NetworkMonitor(app_manager.RyuApp):
 			if self.true_total_flow_size[flow] < Th_true and flow not in self.CEAED_ele_flows:
 				CEAED_TN += 1
 		print "CEAED: FP, FN, TP, TN: ", CEAED_FP, CEAED_FN, CEAED_TP, CEAED_TN
-		print "total flow num: ", total_flow_num
+		# print "total flow num: ", total_flow_num
 		CEAED_FPR = CEAED_FP / (CEAED_FP+CEAED_TN)
 		# CEAED_FPR_each_period.append(CEAED_FPR)
 		CEAED_FNR = CEAED_FN / (CEAED_FN+CEAED_TP)
+		if "FPR" in self.CEAED_FPR_and_FNR.keys():
+			self.CEAED_FPR_and_FNR["FPR"].append(CEAED_FPR)
+		else:
+			self.CEAED_FPR_and_FNR["FPR"] = [CEAED_FPR]
+		if "FNR" in self.CEAED_FPR_and_FNR.keys():
+			self.CEAED_FPR_and_FNR["FNR"].append(CEAED_FNR)
+		else:
+			self.CEAED_FPR_and_FNR["FNR"] = [CEAED_FNR]
 		# CEAED_FNR_each_period.append(CEAED_FNR)
 
 		# total_periods = len(CEAED_FPR_each_period)
@@ -205,6 +214,7 @@ class NetworkMonitor(app_manager.RyuApp):
 		# Avg_CEAED_FPR = total_FPR / total_periods
 		# Avg_CEAED_FNR = total_FNR / total_periods
 		print "CEAED: FPR=%s, FNR=%s." % (CEAED_FPR, CEAED_FNR)
+		print self.CEAED_FPR_and_FNR
 		# print "All FPR and FNR: ", CEAED_FPR_each_period, CEAED_FNR_each_period
 
 		# Hedera
@@ -346,7 +356,7 @@ class NetworkMonitor(app_manager.RyuApp):
 			self.true_total_flow_size[flow] = stat.byte_count
 
 			# Records the flow size in current period.
-			if self.flow_size_cur_period.has_key(flow):
+			if flow in self.flow_size_cur_period.keys():
 				self.flow_size_cur_period[flow] = stat.byte_count - \
 												  self.flow_size_cur_period[flow]
 			else:
@@ -424,24 +434,24 @@ class NetworkMonitor(app_manager.RyuApp):
 		ele_num = 0
 
 		# Calculate the ele-flow number by proportion.
-		ele_num = int(flow_num * ele_persent)
+		# ele_num = int(flow_num * ele_persent)
 
 		# Calculate the ele-flow number by true threshold.
 		# This is not good, the ele-flow number will be very large.
-		#
-		# total_traffic = 0
-		# for flow in self.true_total_flow_size.keys():
-		# 	total_traffic = total_traffic + self.true_total_flow_size[flow]
-		# # Real elephant flow is defined as the flow that carries traffic exceed
-		# # 0.1% of the total network traffic.
-		# Th_true = self.true_ele_size_proportion*self.network_traffic
-		# for i in range(0, flow_num):
-		# 	if flow_size[i][1] < Th_true:
-		# 		ele_num = i
-		# 	if i == flow_num-1:
-		# 		ele_num = i
+		total_traffic = 0
+		for flow in self.true_total_flow_size.keys():
+			total_traffic = total_traffic + self.true_total_flow_size[flow]
+		# Real elephant flow is defined as the flow that carries traffic exceed
+		# 0.1% of the total network traffic.
+		Th_true = self.true_ele_size_proportion*self.network_traffic
+		for i in range(0, flow_num):
+			if flow_size[i][1] < Th_true:
+				ele_num = i
+				break
+			# if i == flow_num-1:
+			ele_num = i
+		print "ele_num, total_num: ", ele_num, flow_num
 
-		# print "ele_num, total_num: ", ele_num, flow_num
 		if ele_num is 0:  # Not divide by 0.
 			return
 		mice_num = flow_num - ele_num
@@ -461,34 +471,59 @@ class NetworkMonitor(app_manager.RyuApp):
 			temp = (flow_size[i][1]/1000000 - mu_mice) * (flow_size[i][1]/1000000 - mu_mice)  # MB
 		sigma_mice = temp / mice_num
 
+		if sigma_mice < 0.001:
+			sigma_mice = 0.001
+
 		# print "sigma_mice, sigma_ele: ", sigma_mice, sigma_ele
 
 		Th = ((mu_ele*mu_ele-mu_mice*mu_mice) +
-			  2*sigma_ele*sigma_mice*math.log(ele_persent/mice_persent))\
+			  2*sigma_ele*sigma_ele*math.log(mice_persent/ele_persent))\
 			 / 2*(mu_ele-mu_mice)  # MB
 
+		# Following formulation can not calculate the proper Th.
+		# delta = 4*(sigma_mice*sigma_mice*mu_ele-sigma_ele*sigma_ele*mu_mice) *\
+		# 		  (sigma_mice*sigma_mice*mu_ele-sigma_ele*sigma_ele*mu_mice) -\
+		# 		  4*(sigma_ele*sigma_ele-sigma_mice*sigma_mice)*\
+		# 		  (sigma_ele*sigma_ele*mu_mice*mu_mice -
+		# 		  sigma_mice*sigma_mice*mu_ele*mu_ele -
+		# 		  2*sigma_mice*sigma_mice*sigma_ele*sigma_ele*
+		# 		   math.log((mice_persent*sigma_ele)/(ele_persent*sigma_mice)))
+
+		# delta = 4*(sigma_mice*sigma_mice*mu_ele-sigma_ele*sigma_ele*mu_mice) *\
+		# 		  (sigma_mice*sigma_mice*mu_ele-sigma_ele*sigma_ele*mu_mice) -\
+		# 		  4*(sigma_ele*sigma_ele-sigma_mice*sigma_mice)*\
+		# 		  (sigma_ele*sigma_ele*mu_mice*mu_mice -
+		# 		  sigma_mice*sigma_mice*mu_ele*mu_ele)
+		#
+		# if delta < 0:
+		# 	delta = 0.01
+		#
+		# Th = (2*(sigma_ele*sigma_ele*mu_mice-sigma_mice*sigma_mice*mu_ele) +
+		# 	  math.sqrt(delta)) / 2*(sigma_ele*sigma_ele-sigma_mice*sigma_mice)
+
 		if Th < 0.01:
-			Th = 0.1  # 100KB
+			Th = 0.01  # 10KB
 		print "Th=", Th, "Th/per=", Th/self.monitor_period  # MB
 
 		# self.CEAED_ele_flows = []
 		# Detect ele-flow by current period flow size.
 		for flow in self.flow_size_cur_period.keys():
-			# if self.flow_size_per_period[flow]/1000000 >= Th:
 			if self.flow_size_cur_period[flow]/1000000 >= Th/self.monitor_period and \
 							flow not in self.CEAED_ele_flows:
 				# if self.CEAED_ele_flows_each_period.has_key(self.monitor_period-1) and \
 				# 	flow in self.CEAED_ele_flows_each_period[self.monitor_period-1]:
 				# 	self.CEAED_ele_flows.append(flow)
 				self.CEAED_ele_flows.append(flow)
+
 		# Detect ele-flow by total flow size. Seems not good.
 		# for flow in self.true_total_flow_size.keys():
 		# 	if self.true_total_flow_size[flow]/1000000 >= Th and \
 		# 			flow not in self.CEAED_ele_flows:
-		# 		if self.CEAED_ele_flows_each_period.has_key(self.monitor_period-1) and \
-		# 			flow in self.CEAED_ele_flows_each_period[self.monitor_period-1]:
-		# 			self.CEAED_ele_flows.append(flow)
-				# print "CEAED adds a ele-flow:", flow
+		# 		# if self.CEAED_ele_flows_each_period.has_key(self.monitor_period-1) and \
+		# 		# 	flow in self.CEAED_ele_flows_each_period[self.monitor_period-1]:
+		# 		# 	self.CEAED_ele_flows.append(flow)
+		# 		self.CEAED_ele_flows.append(flow)
+		# 		# print "CEAED adds a ele-flow:", flow
 
 		self.CEAED_ele_flows_each_period[self.monitor_period] = self.CEAED_ele_flows
 
