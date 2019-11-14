@@ -199,7 +199,6 @@ class lldp(packet_base.PacketBase):
     def __len__(self):
         return sum(LLDP_TLV_SIZE + tlv.len for tlv in self.tlvs)
 
-
 @lldp.set_tlv_type(LLDP_TLV_END)
 class End(LLDPBasicTLV):
     """End TLV encoder/decoder class
@@ -307,10 +306,12 @@ class PortID(LLDPBasicTLV):
             self.port_id = kwargs['port_id']
             self.len = self._PACK_SIZE + len(self.port_id)
             assert self._len_valid()
+            # self.len = len(self.port_id)
             self.typelen = (self.tlv_type << LLDP_TLV_TYPE_SHIFT) | self.len
 
     def serialize(self):
         return struct.pack('!HB', self.typelen, self.subtype) + self.port_id
+        # return self.port_id
 
 
 @lldp.set_tlv_type(LLDP_TLV_TTL)

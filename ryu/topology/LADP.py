@@ -1204,7 +1204,7 @@ class Switches(app_manager.RyuApp):
             # print "e_time:", e_time
             print "total time:", total_time
             print "CPU time:", CPU_time
-            print "My_OFDPv2"
+            print "LADP"
 
             self.one_round = 1
         # count time------------------------------------------------------
