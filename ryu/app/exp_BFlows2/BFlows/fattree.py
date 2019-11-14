@@ -291,7 +291,7 @@ def traffic_generation(net, topo, flows_peers):
 	os.system('killall bwm-ng')
 	os.system('killall iperf')
 
-def ele_and_mice_generation(net, topo, flows_peers):
+def nomal_generation(net, topo, flows_peers):
 	"""
 		Generate both elephant flows and mice flows
 		for testing the performance of the network.
@@ -323,8 +323,8 @@ def ele_and_mice_generation(net, topo, flows_peers):
 		ele_size = np.random.normal(ele_mu, ele_sigma, ele_num)
 		# print "ele_size:", ele_size
 		for size in ele_size:
-			if size <= 0.1:
-				size = 0.1
+			if size <= 1:
+				size = 10
 			client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
 							(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
 
@@ -340,17 +340,6 @@ def ele_and_mice_generation(net, topo, flows_peers):
 			client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
 							(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
 
-		# client.cmdPrint("iperf -c %s -i 1 -n 1 -l 200K > %s/%s &" % (server.IP(),
-		# 				 args.output_dir, 'client'+filename+'.txt'))
-		# client.cmdPrint("iperf -c %s -i 1 -n 1 -l 400K > %s/%s &" % (server.IP(),
-		# 				 args.output_dir, 'client'+filename+'.txt'))
-		# client.cmdPrint("iperf -c %s -i 1 -n 1 -l 600K > %s/%s &" % (server.IP(),
-		# 				 args.output_dir, 'client' + filename + '.txt'))
-		# client.cmdPrint("iperf -c %s -t %d > %s/%s &" % (server.IP(),
-		# 				args.duration+1990, args.output_dir, 'client'+filename+'.txt'))
-		# client.cmdPrint("iperf -c %s -t %d > /dev/null &" % (server.IP(), 1990))   # Its statistics is useless, just throw away. 1990 just means a great number.
-		# time.sleep(1)
-
 	# Wait for the traffic to become stable.
 	# time.sleep(2)
 
@@ -361,6 +350,193 @@ def ele_and_mice_generation(net, topo, flows_peers):
 	# 3. The experiment is going on.
 	# time.sleep(args.duration + 5)
 	time.sleep(60)
+
+	# 4. Shut down.
+	monitor.terminate()
+	os.system('killall bwm-ng')
+	os.system('killall iperf')
+
+def per_second_nomal_generation(net, topo, flows_peers):
+	"""
+		Generate both elephant flows and mice flows
+		for testing the performance of the network.
+	"""
+	iperf_peers = [('h001', 'h003')]
+	flows_peers = iperf_peers
+	# 1. Start iperf. (Elephant flows)
+	# Start the servers.
+	serversList = set([peer[1] for peer in flows_peers])
+	for server in serversList:
+		filename = server[1:]
+		server = net.get(server)
+		server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server' + filename + '.txt'))
+		# server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
+		# server.cmdPrint("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
+
+	time.sleep(1)
+
+	# Start the clients.
+	for t in range(0, 10):
+		for src, dest in flows_peers:
+			server = net.get(dest)
+			client = net.get(src)
+			filename = src[1:]
+
+			ele_mu = 10
+			ele_sigma = 4
+			ele_num = 1
+			ele_size = np.random.normal(ele_mu, ele_sigma, ele_num)
+			# print "ele_size:", ele_size
+			for size in ele_size:
+				if size <= 1:
+					size = 1
+				client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
+								(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
+
+			mice_mu = 0.1
+			mice_sigma = 0.1
+			mice_num = 9
+			mice_size = np.random.normal(mice_mu, mice_sigma, mice_num)
+			# print "mice_size:", mice_size
+			for size in mice_size:
+				if size <= 0:
+					size = 0.001
+				client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
+								(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
+
+		time.sleep(5)
+
+	# Wait for the traffic to become stable.
+	# time.sleep(2)
+
+	# 2. Start bwm-ng to monitor throughput.
+	monitor = Process(target = monitor_devs_ng, args = ('%s/bwmng.txt' % args.output_dir, 1.0))
+	monitor.start()
+
+	# 3. The experiment is going on.
+	# time.sleep(args.duration + 5)
+	time.sleep(10+5)
+
+	# 4. Shut down.
+	monitor.terminate()
+	os.system('killall bwm-ng')
+	os.system('killall iperf')
+
+def uniform_generation(net, topo, flows_peers):
+	"""
+		Generate both elephant flows and mice flows
+		for testing the performance of the network.
+	"""
+	iperf_peers = [('h001', 'h003')]
+	flows_peers = iperf_peers
+	# 1. Start iperf. (Elephant flows)
+	# Start the servers.
+	serversList = set([peer[1] for peer in flows_peers])
+	for server in serversList:
+		filename = server[1:]
+		server = net.get(server)
+		server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server' + filename + '.txt'))
+		# server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
+		# server.cmdPrint("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
+
+	time.sleep(1)
+
+	# Start the clients.
+	for src, dest in flows_peers:
+		server = net.get(dest)
+		client = net.get(src)
+		filename = src[1:]
+
+		ele_low = 1
+		ele_high = 100
+		ele_num = 10
+
+		ele_size = np.random.uniform(ele_low, ele_high, ele_num)
+		# print "ele_size:", ele_size
+		for size in ele_size:
+			if size <= 0.1:
+				size = 0.1
+			client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
+							(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
+
+		mice_low = 0.001
+		mice_high = 1
+		mice_num = 90
+
+		mice_size = np.random.uniform(mice_low, mice_high, mice_num)
+		# print "mice_size:", mice_size
+		for size in mice_size:
+			if size <= 0:
+				size = 0.001
+			client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
+							(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
+
+	# 2. Start bwm-ng to monitor throughput.
+	monitor = Process(target = monitor_devs_ng, args = ('%s/bwmng.txt' % args.output_dir, 1.0))
+	monitor.start()
+
+	# 3. The experiment is going on.
+	# time.sleep(args.duration + 5)
+	time.sleep(60)
+
+	# 4. Shut down.
+	monitor.terminate()
+	os.system('killall bwm-ng')
+	os.system('killall iperf')
+
+def per_second_uniform_generation(net, topo, flows_peers):
+	"""
+		Generate both elephant flows and mice flows
+		for testing the performance of the network.
+	"""
+	iperf_peers = [('h001', 'h003')]
+	flows_peers = iperf_peers
+	# 1. Start iperf. (Elephant flows)
+	# Start the servers.
+	serversList = set([peer[1] for peer in flows_peers])
+	for server in serversList:
+		filename = server[1:]
+		server = net.get(server)
+		server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server' + filename + '.txt'))
+		# server.cmdPrint("iperf -s > %s/%s &" % (args.output_dir, 'server'+filename+'.txt'))
+		# server.cmdPrint("iperf -s > /dev/null &" )   # Its statistics is useless, just throw away.
+
+	time.sleep(1)
+
+	# Start the clients.
+	for t in range(0, 10):
+		for src, dest in flows_peers:
+			server = net.get(dest)
+			client = net.get(src)
+			filename = src[1:]
+
+			ele_low = 1
+			ele_high = 100
+			ele_num = 1
+			ele_size = np.random.uniform(ele_low, ele_high, ele_num)
+			print "ele_size:", ele_size
+			for size in ele_size:
+				client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
+							(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
+
+			mice_low = 0.001
+			mice_high = 1
+			mice_num = 9
+			mice_size = np.random.uniform(mice_low, mice_high, mice_num)
+			print "mice_size:", mice_size
+			for size in mice_size:
+				client.cmdPrint("iperf -c %s -i 1 -n 1 -l %sM > %s/%s &" %
+							(server.IP(), size, args.output_dir, 'client' + filename + '.txt'))
+
+		time.sleep(5)
+
+	# 2. Start bwm-ng to monitor throughput.
+	monitor = Process(target = monitor_devs_ng, args = ('%s/bwmng.txt' % args.output_dir, 1.0))
+	monitor.start()
+
+	# 3. The experiment is going on.
+	# time.sleep(args.duration + 5)
+	time.sleep(10+5)
 
 	# 4. Shut down.
 	monitor.terminate()
@@ -420,8 +596,10 @@ def run_experiment(pod, density, ip="127.0.0.1", port=6653, bw_c2a=10, bw_a2e=10
 
 	# 3. Generate traffics and test the performance of the network.
 	# traffic_generation(net, topo, iperf_peers.iperf_peers)
-	ele_and_mice_generation(net, topo, iperf_peers.iperf_peers)
-
+	nomal_generation(net, topo, iperf_peers.iperf_peers)
+	# per_second_nomal_generation(net, topo, iperf_peers.iperf_peers)
+	# uniform_generation(net, topo, iperf_peers.iperf_peers)
+	# per_second_uniform_generation(net, topo, iperf_peers.iperf_peers)
 
 	# start mininet CLI
 	# CLI(net)

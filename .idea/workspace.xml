@@ -1,16 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="5c94a2bd-67f4-4e79-97ee-638fe4f5848f" name="Default" comment="After Topology Discovery experiments, i couldn't run BFlows module correctly. So, I decide to rollback to previous version.">
+    <list default="true" id="5c94a2bd-67f4-4e79-97ee-638fe4f5848f" name="Default" comment="Elephant flow detection. Can not find any host. Roll back.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/fattree.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/fattree.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/fattree_ele_flow_gen.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/fattree_ele_flow_gen.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/network_monitor.py" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows/network_monitor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-1.realtime_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-1.realtime_throughput.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-2.average_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-2.average_throughput.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-3.accumulated_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-3.accumulated_throughput.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-4.normalized_total_throughput.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-4.normalized_total_throughput.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-6.link_bandwidth_utilization_ratio.png" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1-6.link_bandwidth_utilization_ratio.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/BFlows/bwmng.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ryu/app/exp_BFlows2/results/1/random/BFlows/bwmng.txt" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -90,7 +84,7 @@
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
-    <option name="RESET_MODE" value="HARD" />
+    <option name="RESET_MODE" value="KEEP" />
     <option name="ROOT_SYNC" value="SYNC" />
   </component>
   <component name="GithubDefaultAccount">
@@ -1197,7 +1191,11 @@
       <workItem from="1568016209671" duration="52260000" />
       <workItem from="1568381504190" duration="99653000" />
       <workItem from="1568982148389" duration="41972000" />
-      <workItem from="1573440776068" duration="34945000" />
+      <workItem from="1573440776068" duration="48793000" />
+      <workItem from="1573629235155" duration="215000" />
+      <workItem from="1573629501857" duration="101000" />
+      <workItem from="1573631715045" duration="15046000" />
+      <workItem from="1573702884190" duration="4300000" />
     </task>
     <task id="LOCAL-00001" summary="remove the ./git dir in some subdir.">
       <created>1552898983142</created>
@@ -1290,7 +1288,28 @@
       <option name="project" value="LOCAL" />
       <updated>1568960193963</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="Elephant flow detection. FPR=0.067, FNR=0.25">
+      <created>1573561400039</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1573561400039</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Elephant flow detection. CEAED+Hedera Hedera is good, but there has some bugs.">
+      <created>1573568863812</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1573568863812</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Elephant flow detection. Can not find any host. Roll back.">
+      <created>1573615647049</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1573615647049</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TodoView">
@@ -1367,7 +1386,10 @@
     <MESSAGE value="Finish scalability." />
     <MESSAGE value="Finish secure version." />
     <MESSAGE value="Add scalability and security." />
-    <option name="LAST_COMMIT_MESSAGE" value="Add scalability and security." />
+    <MESSAGE value="Elephant flow detection. FPR=0.067, FNR=0.25" />
+    <MESSAGE value="Elephant flow detection. CEAED+Hedera Hedera is good, but there has some bugs." />
+    <MESSAGE value="Elephant flow detection. Can not find any host. Roll back." />
+    <option name="LAST_COMMIT_MESSAGE" value="Elephant flow detection. Can not find any host. Roll back." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/ryu_master$tp_dc.coverage" NAME="tp_dc Coverage Results" MODIFIED="1572592461020" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
@@ -1380,7 +1402,7 @@
     <SUITE FILE_PATH="coverage/ryu_master$hello.coverage" NAME="hello Coverage Results" MODIFIED="1555579967098" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/funny" />
     <SUITE FILE_PATH="coverage/ryu_master$multi_tp_dc2.coverage" NAME="multi_tp_dc2 Coverage Results" MODIFIED="1568552155530" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
     <SUITE FILE_PATH="coverage/ryu_master$simple_switch_13___monitor.coverage" NAME="simple_switch_13 + monitor Coverage Results" MODIFIED="1573029766255" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
-    <SUITE FILE_PATH="coverage/ryu_master$BFlows_fattree.coverage" NAME="BFlows_fattree Coverage Results" MODIFIED="1573561105447" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows" />
+    <SUITE FILE_PATH="coverage/ryu_master$BFlows_fattree.coverage" NAME="BFlows_fattree Coverage Results" MODIFIED="1573706050230" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2/BFlows" />
     <SUITE FILE_PATH="coverage/ryu_master$my_plot.coverage" NAME="my_plot Coverage Results" MODIFIED="1573441972530" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ryu/app/exp_BFlows2" />
     <SUITE FILE_PATH="coverage/ryu_master$multi_tp_dc1.coverage" NAME="multi_tp_dc1 Coverage Results" MODIFIED="1568552072088" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />
     <SUITE FILE_PATH="coverage/ryu_master$server_c1.coverage" NAME="mulit_client2 Coverage Results" MODIFIED="1568962963569" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/bin" />

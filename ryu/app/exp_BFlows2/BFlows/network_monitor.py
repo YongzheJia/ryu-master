@@ -71,15 +71,20 @@ class NetworkMonitor(app_manager.RyuApp):
 		self.cur_best_paths = None
 
 		# Save ele and mice flow.
+		self.static_th = 100000  # 100KB
+		self.true_ele_size_proportion = 0.001
 		self.CEAED_ele_flows = []
 		self.CEAED_ele_flows_each_period = {}
+
 		self.Hedera_ele_flows = []
 		self.Hedera_ele_flows_each_period = {}
+
 		self.BFlows_ele_flows = []
 		self.Two_ele_flows = []
 		self.old_CEAED_ele_flows = []
 		self.mice_flows = []
-		self.flow_size_per_period = {}
+		self.flow_size_cur_period = {}  # {flow:size}
+		self.flow_size_each_period = {}  # {period:{flow:size}}
 		self.true_total_flow_size = {}
 		self.network_traffic = 0
 		self.monitor_period = 0
@@ -101,8 +106,9 @@ class NetworkMonitor(app_manager.RyuApp):
 				self._request_stats(dp)
 
 			self.monitor_period = (self.monitor_period+1) % 60
-			if self.monitor_period in [5, 10, 15, 20, 25, 30, 35, 40]:
-				self.calculate_FPR_and_FNR()
+			# if self.monitor_period % 5 == 1:
+			# 	self.calculate_FPR_and_FNR()
+			self.calculate_FPR_and_FNR()
 
 			# hub.sleep(setting.MONITOR_PERIOD)
 
@@ -125,7 +131,6 @@ class NetworkMonitor(app_manager.RyuApp):
 				hub.sleep(1)
 
 	def calculate_FPR_and_FNR(self):
-
 		total_flow_num = len(self.true_total_flow_size)
 		if total_flow_num == 0:
 			return
@@ -134,88 +139,138 @@ class NetworkMonitor(app_manager.RyuApp):
 			self.network_traffic = self.network_traffic + self.true_total_flow_size[flow]
 		# Real elephant flow is defined as the flow that carries traffic exceed
 		# 0.1% of the total network traffic.
-		Th_true = 0.0001*self.network_traffic
+		Th_true = self.true_ele_size_proportion*self.network_traffic
 		print "Th_true: ", Th_true/1000000  # MB
 
 		# CEAED
-		CEAED_FPR_each_period = []
-		CEAED_FNR_each_period = []
+		# CEAED_FPR_each_period = []
+		# CEAED_FNR_each_period = []
+		# for i in self.CEAED_ele_flows_each_period.keys():
+		# 	CEAED_FPR = 0
+		# 	CEAED_FNR = 0
+		# 	CEAED_FP = 0
+		# 	CEAED_FN = 0
+		# 	CEAED_TP = 0
+		# 	CEAED_TN = 0
+		# 	for flow in self.CEAED_ele_flows_each_period[i]:
+		# 		if self.true_total_flow_size[flow] < Th_true:
+		# 			CEAED_FP += 1
+		# 	for flow in self.true_total_flow_size.keys():
+		# 		if self.true_total_flow_size[flow] >= Th_true and flow not in self.CEAED_ele_flows_each_period[i]:
+		# 			CEAED_FN += 1
+		# 	for flow in self.CEAED_ele_flows_each_period[i]:
+		# 		if self.true_total_flow_size[flow] >= Th_true:
+		# 			CEAED_TP += 1
+		# 	for flow in self.true_total_flow_size.keys():
+		# 		if self.true_total_flow_size[flow] < Th_true and flow not in self.CEAED_ele_flows_each_period[i]:
+		# 			CEAED_TN += 1
+		# 	CEAED_FPR = CEAED_FP / (CEAED_FP+CEAED_TN)
+		# 	CEAED_FPR_each_period.append(CEAED_FPR)
+		# 	CEAED_FNR = CEAED_FN / (CEAED_FN+CEAED_TP)
+		# 	CEAED_FNR_each_period.append(CEAED_FNR)
 
-		for i in self.CEAED_ele_flows_each_period.keys():
-			CEAED_FPR = 0
-			CEAED_FNR = 0
-			CEAED_FP = 0
-			CEAED_FN = 0
-			for flow in self.CEAED_ele_flows_each_period[i]:
-				if self.true_total_flow_size[flow] < Th_true:
-					CEAED_FP += 1
-			CEAED_FPR = CEAED_FP / total_flow_num
-			CEAED_FPR_each_period.append(CEAED_FPR)
+		CEAED_FPR = 0
+		CEAED_FNR = 0
+		CEAED_FP = 0
+		CEAED_FN = 0
+		CEAED_TP = 0
+		CEAED_TN = 0
+		for flow in self.CEAED_ele_flows:
+			if self.true_total_flow_size[flow] < Th_true:
+				CEAED_FP += 1
+		for flow in self.true_total_flow_size.keys():
+			if self.true_total_flow_size[flow] >= Th_true and flow not in self.CEAED_ele_flows:
+				CEAED_FN += 1
+		for flow in self.CEAED_ele_flows:
+			if self.true_total_flow_size[flow] >= Th_true:
+				CEAED_TP += 1
+		for flow in self.true_total_flow_size.keys():
+			if self.true_total_flow_size[flow] < Th_true and flow not in self.CEAED_ele_flows:
+				CEAED_TN += 1
+		print "CEAED: FP, FN, TP, TN: ", CEAED_FP, CEAED_FN, CEAED_TP, CEAED_TN
+		print "total flow num: ", total_flow_num
+		CEAED_FPR = CEAED_FP / (CEAED_FP+CEAED_TN)
+		# CEAED_FPR_each_period.append(CEAED_FPR)
+		CEAED_FNR = CEAED_FN / (CEAED_FN+CEAED_TP)
+		# CEAED_FNR_each_period.append(CEAED_FNR)
 
-			for flow in self.true_total_flow_size.keys():
-				if self.true_total_flow_size[flow] >= Th_true and flow not in self.CEAED_ele_flows_each_period[i]:
-					CEAED_FN += 1
-			CEAED_FNR = CEAED_FN / total_flow_num
-			CEAED_FNR_each_period.append(CEAED_FNR)
-
-		total_periods = len(CEAED_FPR_each_period)
-		total_FPR = 0
-		total_FNR =0
-		Avg_CEAED_FPR = 0
-		Avg_CEAED_FNR = 0
-		for i in range(0, total_periods):
-			total_FPR = total_FPR + CEAED_FPR_each_period[i]
-			total_FNR = total_FNR + CEAED_FNR_each_period[i]
-		Avg_CEAED_FPR = total_FPR / total_periods
-		Avg_CEAED_FNR = total_FNR / total_periods
-		print "CEAED: FPR=%s, FNR=%s." % (Avg_CEAED_FPR, Avg_CEAED_FNR)
-		print "All FPR and FNR: ", CEAED_FPR_each_period, CEAED_FNR_each_period
+		# total_periods = len(CEAED_FPR_each_period)
+		# total_FPR = 0
+		# total_FNR =0
+		# Avg_CEAED_FPR = 0
+		# Avg_CEAED_FNR = 0
+		# for i in range(0, total_periods):
+		# 	total_FPR = total_FPR + CEAED_FPR_each_period[i]
+		# 	total_FNR = total_FNR + CEAED_FNR_each_period[i]
+		# Avg_CEAED_FPR = total_FPR / total_periods
+		# Avg_CEAED_FNR = total_FNR / total_periods
+		print "CEAED: FPR=%s, FNR=%s." % (CEAED_FPR, CEAED_FNR)
+		# print "All FPR and FNR: ", CEAED_FPR_each_period, CEAED_FNR_each_period
 
 		# Hedera
-		Hedera_FPR_each_period = []
-		Hedera_FNR_each_period = []
-
-		for i in self.Hedera_ele_flows_each_period.keys():
-			Hedera_FPR = 0
-			Hedera_FNR = 0
-			Hedera_FP = 0
-			Hedera_FN = 0
-			for flow in self.Hedera_ele_flows_each_period[i]:
-				if self.true_total_flow_size[flow] < Th_true:
-					Hedera_FP += 1
-			Hedera_FPR = Hedera_FP / total_flow_num
-			Hedera_FPR_each_period.append(Hedera_FPR)
-
-			for flow in self.true_total_flow_size.keys():
-				if self.true_total_flow_size[flow] >= Th_true and flow not in self.Hedera_ele_flows_each_period[i]:
-					Hedera_FN += 1
-			Hedera_FNR = Hedera_FN / total_flow_num
-			Hedera_FNR_each_period.append(Hedera_FNR)
-
-		total_periods = len(Hedera_FPR_each_period)
-		total_FPR = 0
-		total_FNR =0
-		Avg_Hedera_FPR = 0
-		Avg_Hedera_FNR = 0
-		for i in range(0, total_periods):
-			total_FPR = total_FPR + Hedera_FPR_each_period[i]
-			total_FNR = total_FNR + Hedera_FNR_each_period[i]
-		Avg_Hedera_FPR = total_FPR / total_periods
-		Avg_Hedera_FNR = total_FNR / total_periods
-		print "Hedera: FPR=%s, FNR=%s." % (Avg_Hedera_FPR, Avg_Hedera_FNR)
-		print "All FPR and FNR: ", Hedera_FPR_each_period, Hedera_FNR_each_period
-
-		# for flow in self.CEAED_ele_flows:
-		# 	if self.total_flow_size[flow] < Th_true:
-		# 		CEAED_FP += 1
-		# CEAED_FPR = CEAED_FP / total_flow_num
+		# Hedera_FPR_each_period = []
+		# Hedera_FNR_each_period = []
+		# for i in self.Hedera_ele_flows_each_period.keys():
+			# Hedera_FPR = 0
+			# Hedera_FNR = 0
+			# Hedera_FP = 0
+			# Hedera_FN = 0
+			# Hedera_TP = 0
+			# Hedera_TN = 0
+			# for flow in self.Hedera_ele_flows_each_period[i]:
+			# 	if self.true_total_flow_size[flow] < Th_true:
+			# 		Hedera_FP += 1
+			# for flow in self.true_total_flow_size.keys():
+			# 	if self.true_total_flow_size[flow] >= Th_true and flow not in self.Hedera_ele_flows_each_period[i]:
+			# 		Hedera_FN += 1
+			# for flow in self.Hedera_ele_flows_each_period[i]:
+			# 	if self.true_total_flow_size[flow] >= Th_true:
+			# 		Hedera_TP += 1
+			# for flow in self.true_total_flow_size.keys():
+			# 	if self.true_total_flow_size[flow] < Th_true and flow not in self.Hedera_ele_flows_each_period[i]:
+			# 		Hedera_TN += 1
+			# Hedera_FPR = Hedera_FP / (Hedera_FP + Hedera_TN)
+			# Hedera_FPR_each_period.append(Hedera_FPR)
+			# Hedera_FNR = Hedera_FN / (Hedera_FN + Hedera_TP)
+			# Hedera_FNR_each_period.append(Hedera_FNR)
 		#
-		# for flow in self.total_flow_size.keys():
-		# 	if self.total_flow_size[flow] >= Th_true and flow not in self.CEAED_ele_flows:
-		# 		CEAED_FN += 1
-		# CEAED_FNR = CEAED_FN / total_flow_num
-		#
-		# print "CEAED: FPR=%s, FNR=%s." % (CEAED_FPR, CEAED_FNR)
+		# total_periods = len(Hedera_FPR_each_period)
+		# total_FPR = 0
+		# total_FNR = 0
+		# Avg_Hedera_FPR = 0
+		# Avg_Hedera_FNR = 0
+		# for i in range(0, total_periods):
+		# 	total_FPR = total_FPR + Hedera_FPR_each_period[i]
+		# 	total_FNR = total_FNR + Hedera_FNR_each_period[i]
+		# Avg_Hedera_FPR = total_FPR / total_periods
+		# Avg_Hedera_FNR = total_FNR / total_periods
+
+		Hedera_FPR = 0
+		Hedera_FNR = 0
+		Hedera_FP = 0
+		Hedera_FN = 0
+		Hedera_TP = 0
+		Hedera_TN = 0
+		for flow in self.Hedera_ele_flows:
+			if self.true_total_flow_size[flow] < Th_true:
+				Hedera_FP += 1
+		for flow in self.true_total_flow_size.keys():
+			if self.true_total_flow_size[flow] >= Th_true and flow not in self.Hedera_ele_flows:
+				Hedera_FN += 1
+		for flow in self.Hedera_ele_flows:
+			if self.true_total_flow_size[flow] >= Th_true:
+				Hedera_TP += 1
+		for flow in self.true_total_flow_size.keys():
+			if self.true_total_flow_size[flow] < Th_true and flow not in self.Hedera_ele_flows:
+				Hedera_TN += 1
+		Hedera_FPR = Hedera_FP / (Hedera_FP + Hedera_TN)
+		# Hedera_FPR_each_period.append(Hedera_FPR)
+		Hedera_FNR = Hedera_FN / (Hedera_FN + Hedera_TP)
+		# Hedera_FNR_each_period.append(Hedera_FNR)
+		# print "Hedera: FPR=%s, FNR=%s." % (Avg_Hedera_FPR, Avg_Hedera_FNR)
+		print "Hedera: FPR=%s, FNR=%s." % (Hedera_FPR, Hedera_FNR)
+		# print "All FPR and FNR: ", Hedera_FPR_each_period, Hedera_FNR_each_period
+
 
 	def _save_fnum_graph(self):
 		"""
@@ -290,12 +345,14 @@ class NetworkMonitor(app_manager.RyuApp):
 			# if flow not in self.all_flows.keys():
 			self.true_total_flow_size[flow] = stat.byte_count
 
-			# CEAED records the flow size in current period.
-			if self.flow_size_per_period.has_key(flow):
-				self.flow_size_per_period[flow] = stat.byte_count - \
-												  self.flow_size_per_period[flow]
+			# Records the flow size in current period.
+			if self.flow_size_cur_period.has_key(flow):
+				self.flow_size_cur_period[flow] = stat.byte_count - \
+												  self.flow_size_cur_period[flow]
 			else:
-				self.flow_size_per_period[flow] = stat.byte_count
+				self.flow_size_cur_period[flow] = stat.byte_count
+
+			self.flow_size_each_period[self.monitor_period] = self.flow_size_cur_period[flow]
 
 			# Get flow's speed and record it.
 			duration = self._get_time(stat.duration_sec, stat.duration_nsec)
@@ -308,8 +365,8 @@ class NetworkMonitor(app_manager.RyuApp):
 			is_ele = False
 
 			# Hedera
-			self.Hedera_ele_flows = []
-			if stat.byte_count > 1000000:  # 1MB
+			# self.Hedera_ele_flows = []
+			if stat.byte_count >= self.static_th and flow not in self.Hedera_ele_flows:  # 1MB
 				self.Hedera_ele_flows.append(flow)
 			# self.Hedera_ele_flows_each_period[self.monitor_period] = self.Hedera_ele_flows
 
@@ -354,23 +411,40 @@ class NetworkMonitor(app_manager.RyuApp):
 				# self._save_fnum(dpid, stat.instructions[0].actions[0].port)
 
 		# CEAED
-		flow_num = len(self.flow_size_per_period)
+		flow_num = len(self.true_total_flow_size)
 		if flow_num <= 1:
 			return
 		# flow_size = sorted(self.flow_size_per_period.items(), key=lambda x: x[1], reverse=True)
 		flow_size = sorted(self.true_total_flow_size.items(), key=lambda x: x[1], reverse=True)
 		# print "flow_size_per_period:", flow_size
 
+		# Calculate dynamic threshold.
 		ele_persent = 0.1
 		mice_persent = 1 - ele_persent
+		ele_num = 0
 
+		# Calculate the ele-flow number by proportion.
 		ele_num = int(flow_num * ele_persent)
-		# Not divide by 0.
-		if ele_num is 0:
-			ele_num = 1
-		mice_num = flow_num - ele_num
 
-		# Calculate dynamic threshold.
+		# Calculate the ele-flow number by true threshold.
+		# This is not good, the ele-flow number will be very large.
+		#
+		# total_traffic = 0
+		# for flow in self.true_total_flow_size.keys():
+		# 	total_traffic = total_traffic + self.true_total_flow_size[flow]
+		# # Real elephant flow is defined as the flow that carries traffic exceed
+		# # 0.1% of the total network traffic.
+		# Th_true = self.true_ele_size_proportion*self.network_traffic
+		# for i in range(0, flow_num):
+		# 	if flow_size[i][1] < Th_true:
+		# 		ele_num = i
+		# 	if i == flow_num-1:
+		# 		ele_num = i
+
+		# print "ele_num, total_num: ", ele_num, flow_num
+		if ele_num is 0:  # Not divide by 0.
+			return
+		mice_num = flow_num - ele_num
 		total_ele_size = 0
 		for i in range(0, ele_num):
 			total_ele_size = total_ele_size + flow_size[i][1] / 1000000  # MB
@@ -387,54 +461,39 @@ class NetworkMonitor(app_manager.RyuApp):
 			temp = (flow_size[i][1]/1000000 - mu_mice) * (flow_size[i][1]/1000000 - mu_mice)  # MB
 		sigma_mice = temp / mice_num
 
+		# print "sigma_mice, sigma_ele: ", sigma_mice, sigma_ele
+
 		Th = ((mu_ele*mu_ele-mu_mice*mu_mice) +
-			  2*sigma_ele*sigma_ele*math.log(ele_persent/mice_persent))\
+			  2*sigma_ele*sigma_mice*math.log(ele_persent/mice_persent))\
 			 / 2*(mu_ele-mu_mice)  # MB
 
 		if Th < 0.01:
-			Th = 0.01  # 10KB
-		print "Th=", Th  # MB
+			Th = 0.1  # 100KB
+		print "Th=", Th, "Th/per=", Th/self.monitor_period  # MB
 
-		self.CEAED_ele_flows = []
-		for flow in self.flow_size_per_period.keys():
+		# self.CEAED_ele_flows = []
+		# Detect ele-flow by current period flow size.
+		for flow in self.flow_size_cur_period.keys():
 			# if self.flow_size_per_period[flow]/1000000 >= Th:
-			if self.flow_size_per_period[flow]/1000000 >= Th/self.monitor_period:
+			if self.flow_size_cur_period[flow]/1000000 >= Th/self.monitor_period and \
+							flow not in self.CEAED_ele_flows:
+				# if self.CEAED_ele_flows_each_period.has_key(self.monitor_period-1) and \
+				# 	flow in self.CEAED_ele_flows_each_period[self.monitor_period-1]:
+				# 	self.CEAED_ele_flows.append(flow)
 				self.CEAED_ele_flows.append(flow)
+		# Detect ele-flow by total flow size. Seems not good.
 		# for flow in self.true_total_flow_size.keys():
-		# 	if self.true_total_flow_size[flow]/1000000 >= Th:
-		# 		self.CEAED_ele_flows.append(flow)
+		# 	if self.true_total_flow_size[flow]/1000000 >= Th and \
+		# 			flow not in self.CEAED_ele_flows:
+		# 		if self.CEAED_ele_flows_each_period.has_key(self.monitor_period-1) and \
+		# 			flow in self.CEAED_ele_flows_each_period[self.monitor_period-1]:
+		# 			self.CEAED_ele_flows.append(flow)
 				# print "CEAED adds a ele-flow:", flow
+
 		self.CEAED_ele_flows_each_period[self.monitor_period] = self.CEAED_ele_flows
 
 		# Hedera
 		self.Hedera_ele_flows_each_period[self.monitor_period] = self.Hedera_ele_flows
-
-		# # Calculate the FPR and the FNR of CEAED.
-		# total_flow_num = len(self.total_flow_size)
-		# self.network_traffic = 0
-		# CEAED_FP = 0
-		# CEAED_FN = 0
-		# CEAED_FPR = 0
-		# CEAED_FNR = 0
-		#
-		# for flow in self.total_flow_size.keys():
-		# 	self.network_traffic = self.network_traffic + self.total_flow_size[flow]
-		#
-		# # Real elephant flow is defined as the flow that carries traffic exceed
-		# # 0.1% of the total network traffic.
-		# Th_true = 0.001*self.network_traffic
-		#
-		# for flow in self.ele_flows:
-		# 	if self.total_flow_size[flow] < Th_true:
-		# 		CEAED_FP += 1
-		# CEAED_FPR = CEAED_FP / total_flow_num
-		#
-		# for flow in self.total_flow_size.keys():
-		# 	if self.total_flow_size[flow] >= Th_true and flow not in self.ele_flows:
-		# 		CEAED_FN += 1
-		# CEAED_FNR = CEAED_FN / total_flow_num
-		#
-		# print "FPR=%s, FNR=%s." % (CEAED_FPR, CEAED_FNR)
 
 		for flow in self.CEAED_ele_flows:
 				# src_ip = stat.match['ipv4_src']
